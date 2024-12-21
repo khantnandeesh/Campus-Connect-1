@@ -17,9 +17,8 @@ const Signup = () => {
   useEffect(() => {
     const fetchColleges = async () => {
       try {
-        console.log("fetching data!");
-
-        const response = await axios.get('http://localhost:3000/colleges');
+        console.log("Fetching college data...");
+        const response = await axios.get('http://localhost:3000/college/colleges');
         setColleges(response.data.colleges);
         console.log(response.data.colleges);
       } catch (error) {
@@ -44,7 +43,12 @@ const Signup = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/signup', { username, password, email, collagename });
+      const response = await axios.post('http://localhost:3000/auth/signup', {
+        username,
+        password,
+        email,
+        collagename,
+      });
 
       if (response.status === 200) {
         alert('OTP sent to your email! Please verify.');
@@ -52,7 +56,7 @@ const Signup = () => {
       }
     } catch (error) {
       console.error('Error during signup', error);
-      alert('Error during signup: ' + error.response?.data?.message || error.message);
+      alert('Error during signup: ' + (error.response?.data?.message || error.message));
     }
   };
 
@@ -65,7 +69,13 @@ const Signup = () => {
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/verify-signup', { username, password, email, collagename, otp });
+      const response = await axios.post('http://localhost:3000/auth/verify-signup', {
+        username,
+        password,
+        email,
+        collagename,
+        otp,
+      });
 
       if (response.status === 201) {
         alert('Signup successful! Redirecting to login page...');

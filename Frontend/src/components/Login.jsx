@@ -1,54 +1,50 @@
-import React, { useState } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom"; // Use useNavigate instead of useHistory
+import React, { useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 const Login = () => {
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [otp, setOtp] = useState("");
-  const [otpSent, setOtpSent] = useState(false); // Flag to track if OTP has been sent
-  const [error, setError] = useState("");
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const navigate = useNavigate(); // useNavigate hook to handle navigation
-
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [otpSent, setOtpSent] = useState(false);
+  const [error, setError] = useState('');
+  const navigate = useNavigate();
 
   const handleUsernameChange = (e) => setUsername(e.target.value);
-
-
   const handlePasswordChange = (e) => setPassword(e.target.value);
-
-
   const handleOtpChange = (e) => setOtp(e.target.value);
-
 
   const handleLogin = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await axios.post("http://localhost:3000/login", { username, password });
+      const response = await axios.post(
+        'http://localhost:3000/auth/login',
+        { username, password },
+        { withCredentials: true }
+      );
       if (response.status === 200) {
         setOtpSent(true);
-        setError(""); 
+        setError('');
       }
     } catch (error) {
-      setError("Invalid username or password");
+      setError(error.response ? error.response.data.message : 'An error occurred');
     }
   };
 
-  
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
-
     try {
-      const response = await axios.post("http://localhost:3000/verify-login", { username, otp });
+      const response = await axios.post(
+        'http://localhost:3000/auth/verify-login',
+        { username, otp },
+        { withCredentials: true }
+      );
       if (response.status === 200) {
-        localStorage.setItem("token", response.data.token);
-        setIsLoggedIn(true);
-        setError("");
-        navigate("/dashboard"); 
+        localStorage.setItem('authToken', response.data.token);
+        navigate('/dashboard');
       }
     } catch (error) {
-      setError("Invalid OTP");
+      setError(error.response ? error.response.data.message : 'An error occurred');
     }
   };
 
