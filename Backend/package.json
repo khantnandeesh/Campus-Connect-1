@@ -11,9 +11,9 @@
     "nodemailer": "^6.9.16"
   },
   "devDependencies": {
-    "nodemon": "^2.0.21"
+    "nodemon": "^3.1.9"
   },
- "type": "module",
+  "type": "module",
   "name": "backend",
   "version": "1.0.0",
   "main": "app.js",
