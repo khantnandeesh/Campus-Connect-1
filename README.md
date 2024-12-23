@@ -29,7 +29,7 @@ A platform for students to connect, collaborate, and manage academic activities.
 3. **Run the project locally:**
 
    ```bash
-   node --env-file=.env app.js
+   npm run start
    ```
 
 ---
