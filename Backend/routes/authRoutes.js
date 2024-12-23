@@ -23,9 +23,11 @@ function generateOTP() {
 }
 
 router.post("/signup", async (req, res) => {
-  const { username, password, email, collagename } = req.body;
 
-  if (!username || !password || !email || !collagename) {
+  
+  const { username, password, email, collegename } = req.body;
+
+  if (!username || !password || !email || !collegename) {
     return res.status(400).json({ message: "All fields are required" });
   }
   if (password.length !== 8) {
@@ -35,7 +37,7 @@ router.post("/signup", async (req, res) => {
   }
 
   try {
-    const college = await CollegeDomain.findOne({ collagename });
+    const college = await CollegeDomain.findOne({ collegename :collegename});
     if (!college) {
       return res.status(400).json({ message: "College name is not valid" });
     }
@@ -73,7 +75,9 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post('/verify-signup', async (req, res) => {
-  const { username, password, email, collagename, otp } = req.body;
+  console.log("hit !");
+  const { username, password, email, collegename, otp } = req.body;
+console.log(otp);
 
   if (!otp || otpStore[email] !== otp) {
     return res.status(400).json({ message: 'Invalid or expired OTP' });
@@ -86,7 +90,7 @@ router.post('/verify-signup', async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collagename
+      collegename
     });
 
     await newUser.save();
@@ -94,6 +98,9 @@ router.post('/verify-signup', async (req, res) => {
 
     res.status(201).json({ message: 'User registered successfully' });
   } catch (error) {
+    console.log("erorr hit!");
+    console.log(error);
+    
     res.status(500).json({ message: 'Error saving user', error });
   }
 });
