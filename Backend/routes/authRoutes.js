@@ -2,7 +2,7 @@ import express from "express";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
-import User from "../models/user.js";
+import User from "../models/user.model.js";
 import CollegeDomain from "../models/collegeDomain.js";
 
 const router = express.Router();
@@ -72,11 +72,11 @@ router.post("/signup", async (req, res) => {
   }
 });
 
-router.post('/verify-signup', async (req, res) => {
+router.post("/verify-signup", async (req, res) => {
   const { username, password, email, collagename, otp } = req.body;
 
   if (!otp || otpStore[email] !== otp) {
-    return res.status(400).json({ message: 'Invalid or expired OTP' });
+    return res.status(400).json({ message: "Invalid or expired OTP" });
   }
 
   try {
@@ -86,15 +86,15 @@ router.post('/verify-signup', async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collagename
+      collagename,
     });
 
     await newUser.save();
     delete otpStore[email];
 
-    res.status(201).json({ message: 'User registered successfully' });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    res.status(500).json({ message: 'Error saving user', error });
+    res.status(500).json({ message: "Error saving user", error });
   }
 });
 
@@ -128,32 +128,32 @@ router.post("/login", async (req, res) => {
   }
 });
 
-router.post('/verify-login', async (req, res) => {
+router.post("/verify-login", async (req, res) => {
   const { username, otp } = req.body;
 
   try {
     const user = await User.findOne({ username });
     if (!user || otpStore[user.email] !== otp) {
-      return res.status(400).json({ message: 'Invalid OTP or user' });
+      return res.status(400).json({ message: "Invalid OTP or user" });
     }
 
     const token = jwt.sign(
       { id: user._id, username: user.username, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: '1h' }
+      { expiresIn: "1h" }
     );
 
     delete otpStore[user.email];
 
-    res.cookie('authToken', token, {
+    res.cookie("authToken", token, {
       httpOnly: true,
-      sameSite: 'strict',
+      sameSite: "strict",
       maxAge: 60 * 60 * 1000,
     });
 
-    res.status(200).json({ message: 'Login successful', token });
+    res.status(200).json({ message: "Login successful", token });
   } catch (error) {
-    res.status(500).json({ message: 'Error during OTP verification', error });
+    res.status(500).json({ message: "Error during OTP verification", error });
   }
 });
 
@@ -161,7 +161,7 @@ const authenticateUser = (req, res, next) => {
   const token = req.cookies.authToken;
 
   if (!token) {
-    return res.status(401).json({ message: 'Unauthorized' });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
@@ -169,7 +169,7 @@ const authenticateUser = (req, res, next) => {
     req.user = decoded;
     next();
   } catch (error) {
-    res.status(403).json({ message: 'Invalid or expired token' });
+    res.status(403).json({ message: "Invalid or expired token" });
   }
 };
 
@@ -178,11 +178,13 @@ router.post("/api/auth/logout", (req, res) => {
   res.status(200).json({ message: "Logged out successfully" });
 });
 
-router.get('/dashboard', authenticateUser, async (req, res) => {
+router.get("/dashboard", authenticateUser, async (req, res) => {
   try {
-    res.status(200).json({ message: 'Welcome to the dashboard', user: req.user });
+    res
+      .status(200)
+      .json({ message: "Welcome to the dashboard", user: req.user });
   } catch (error) {
-    res.status(500).json({ message: 'Error loading dashboard', error });
+    res.status(500).json({ message: "Error loading dashboard", error });
   }
 });
 
