@@ -1,6 +1,9 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Fragment } from "react";
 import PropTypes from "prop-types";
 import { toast } from "react-toastify";
+import { Dialog, Transition } from "@headlessui/react";
+import { FaArrowAltCircleUp, FaArrowAltCircleDown } from "react-icons/fa";
+import { useNavigate } from "react-router-dom";
 import {
   fetchQuestions,
   submitQuestion,
@@ -9,48 +12,194 @@ import {
   downvoteAnswer,
   fetchAnswersByIds,
   deleteQuestionAndAnswers,
-} from "../utils/doubtService";
+  upvoteQuestion,
+  downvoteQuestion,
+} from "../utils/Doubts/doubtService";
+import {
+  socket,
+  subscribeToQuestions,
+  subscribeToAnswers,
+  emitNewQuestion,
+  emitNewAnswer,
+} from "../utils/Doubts/socket";
+import PaginationSlider from "../components/PaginationSlider";
+import { AnswerDialog } from "./QuestionDetail";
+const CATEGORIES = [
+  "Problem Discussions",
+  "Interview Experiences",
+  "General Discussions",
+];
+
+const SORT_OPTIONS = [
+  { value: "newest", label: "Newest" },
+  { value: "most_upvotes", label: "Most Upvotes" },
+];
 
 const QuestionDialog = ({ isOpen, onClose, onSubmit }) => {
-  const [questionText, setQuestionText] = useState("");
+  const [questionData, setQuestionData] = useState({
+    title: "",
+    description: "",
+    category: CATEGORIES[0],
+    tags: [],
+  });
+  const [tagInput, setTagInput] = useState("");
 
-  const handleSubmit = () => {
-    console.log("Question text:", questionText); // Add debug log
-    if (!questionText || questionText.trim() === "") {
-      toast.error("Question cannot be empty!");
-      return;
+  const handleAddTag = () => {
+    if (tagInput.trim() && !questionData.tags.includes(tagInput.trim())) {
+      setQuestionData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, tagInput.trim().toUpperCase()],
+      }));
+      setTagInput("");
     }
-    onSubmit(questionText);
-    onClose(); // Close the dialog after submission
-    setQuestionText(""); // Clear the input
   };
 
-  return isOpen ? (
-    <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-      <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-        <h3 className="text-xl font-semibold mb-4">Ask a Doubt</h3>
-        <textarea
-          value={questionText}
-          onChange={(e) => setQuestionText(e.target.value)}
-          className="w-full p-2 mb-4 border rounded-md"
-          rows="4"
-          placeholder="Type your question here"
-        />
-        <button
-          onClick={handleSubmit}
-          className="w-full bg-green-500 text-white py-2 rounded-md"
+  const handleSubmit = () => {
+    if (!questionData.title || !questionData.description) {
+      toast.error("Title and description are required!");
+      return;
+    }
+    onSubmit(questionData);
+    onClose();
+    setQuestionData({
+      title: "",
+      description: "",
+      category: CATEGORIES[0],
+      tags: [],
+    });
+  };
+
+  return (
+    <Transition appear show={isOpen} as={Fragment}>
+      <Dialog as="div" className="relative z-50" onClose={onClose}>
+        <Transition.Child
+          as={Fragment}
+          enter="ease-out duration-300"
+          enterFrom="opacity-0"
+          enterTo="opacity-100"
+          leave="ease-in duration-200"
+          leaveFrom="opacity-100"
+          leaveTo="opacity-0"
         >
-          Submit Question
-        </button>
-        <button
-          onClick={onClose}
-          className="w-full bg-gray-500 text-white py-2 rounded-md mt-2"
-        >
-          Close
-        </button>
-      </div>
-    </div>
-  ) : null;
+          <div className="fixed inset-0 bg-gray-900 bg-opacity-25" />
+        </Transition.Child>
+
+        <div className="fixed inset-0 overflow-y-auto">
+          <div className="flex min-h-full items-center justify-center p-4 text-center">
+            <Transition.Child
+              as={Fragment}
+              enter="ease-out duration-300"
+              enterFrom="opacity-0 scale-95"
+              enterTo="opacity-100 scale-100"
+              leave="ease-in duration-200"
+              leaveFrom="opacity-100 scale-100"
+              leaveTo="opacity-0 scale-95"
+            >
+              <Dialog.Panel className="w-full max-w-lg transform overflow-hidden rounded-lg bg-white p-6 shadow-xl transition-all">
+                <Dialog.Title
+                  as="h3"
+                  className="text-lg font-medium leading-6 text-gray-900"
+                >
+                  Ask a Doubt
+                </Dialog.Title>
+                <div className="mt-4">
+                  <input
+                    value={questionData.title}
+                    onChange={(e) =>
+                      setQuestionData((prev) => ({
+                        ...prev,
+                        title: e.target.value,
+                      }))
+                    }
+                    className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200"
+                    placeholder="Question Title"
+                  />
+                  <textarea
+                    value={questionData.description}
+                    onChange={(e) =>
+                      setQuestionData((prev) => ({
+                        ...prev,
+                        description: e.target.value,
+                      }))
+                    }
+                    className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200"
+                    rows="4"
+                    placeholder="Question Description"
+                  />
+                  <select
+                    value={questionData.category}
+                    onChange={(e) =>
+                      setQuestionData((prev) => ({
+                        ...prev,
+                        category: e.target.value,
+                      }))
+                    }
+                    className="w-full p-3 mb-4 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200"
+                  >
+                    {CATEGORIES.map((cat) => (
+                      <option key={cat} value={cat}>
+                        {cat}
+                      </option>
+                    ))}
+                  </select>
+                  <div className="flex items-center mb-4">
+                    <input
+                      value={tagInput}
+                      onChange={(e) => setTagInput(e.target.value)}
+                      onKeyPress={(e) => e.key === "Enter" && handleAddTag()}
+                      className="flex-1 p-3 border border-gray-300 rounded-lg focus:ring focus:ring-blue-200"
+                      placeholder="Add tags"
+                    />
+                    <button
+                      onClick={handleAddTag}
+                      className="ml-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                    >
+                      Add
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {questionData.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-blue-100 text-blue-800 px-3 py-1 rounded-full flex items-center"
+                      >
+                        {tag}
+                        <button
+                          onClick={() =>
+                            setQuestionData((prev) => ({
+                              ...prev,
+                              tags: prev.tags.filter((t) => t !== tag),
+                            }))
+                          }
+                          className="ml-2 text-red-500 hover:text-red-600"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="mt-6">
+                    <button
+                      onClick={handleSubmit}
+                      className="w-full bg-green-500 text-white py-3 rounded-lg hover:bg-green-600"
+                    >
+                      Submit Question
+                    </button>
+                    <button
+                      onClick={onClose}
+                      className="w-full bg-gray-300 text-gray-700 py-3 rounded-lg mt-3 hover:bg-gray-400"
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              </Dialog.Panel>
+            </Transition.Child>
+          </div>
+        </div>
+      </Dialog>
+    </Transition>
+  );
 };
 
 QuestionDialog.propTypes = {
@@ -68,33 +217,32 @@ const DoubtsPage = () => {
   const [questionText, setQuestionText] = useState("");
   const [answerText, setAnswerText] = useState("");
   const [selectedQuestion, setSelectedQuestion] = useState(null);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [sortOption, setSortOption] = useState(SORT_OPTIONS[0].value);
+  const [selectedCategory, setSelectedCategory] = useState("");
+  const [tagSearch, setTagSearch] = useState("");
+  const [totalPages, setTotalPages] = useState(1);
+
+  const navigate = useNavigate();
 
   const loadQuestions = useCallback(async () => {
     try {
       setIsLoading(true);
       setError(null);
-      const fetchedQuestions = await fetchQuestions();
 
-      // Check if fetchedQuestions is null or undefined
-      if (!fetchedQuestions) {
-        setQuestions([]);
-        return;
-      }
-
-      const questionsWithAnswers = await Promise.all(
-        fetchedQuestions.map(async (question) => {
-          const answers = await fetchAnswersByIds(question._id);
-          const answersArray = Array.isArray(answers)
-            ? answers
-            : Object.values(answers);
-
-          return { ...question, answers: answersArray };
-        })
+      const response = await fetchQuestions(
+        page,
+        10,
+        sortOption,
+        selectedCategory,
+        tagSearch.trim().toUpperCase()
       );
 
-      setQuestions(questionsWithAnswers);
+      setQuestions(response.questions);
+      setHasMore(response.hasMore);
+      setTotalPages(response.totalPages);
     } catch (error) {
-      // Only show error if it's not a "no questions" situation
       if (error.response?.status !== 404) {
         setError("Failed to load questions. Please try again later.");
         toast.error("Failed to load questions");
@@ -104,14 +252,45 @@ const DoubtsPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [page, sortOption, selectedCategory, tagSearch]);
 
   useEffect(() => {
     const controller = new AbortController();
-
     loadQuestions();
 
-    return () => controller.abort();
+    subscribeToQuestions((newQuestion) => {
+      if (newQuestion.createdBy?._id !== socket.id) {
+        setQuestions((prev) => [newQuestion, ...prev]);
+      }
+    });
+
+    subscribeToAnswers((newAnswer) => {
+      setQuestions((prev) =>
+        prev.map((q) => {
+          if (q._id === newAnswer.question) {
+            const updatedAnswers = [...(q.answers || [])];
+            const existingAnswerIndex = updatedAnswers.findIndex(
+              (a) => a._id === newAnswer._id
+            );
+
+            if (existingAnswerIndex >= 0) {
+              updatedAnswers[existingAnswerIndex] = newAnswer;
+            } else {
+              updatedAnswers.push(newAnswer);
+            }
+
+            return { ...q, answers: updatedAnswers };
+          }
+          return q;
+        })
+      );
+    });
+
+    return () => {
+      controller.abort();
+      socket.off("question_added");
+      socket.off("answer_added");
+    };
   }, [loadQuestions]);
 
   const toggleDialog = () => {
@@ -123,21 +302,19 @@ const DoubtsPage = () => {
     setIsAnswerDialogOpen(!isAnswerDialogOpen);
   };
 
-  const handleQuestionSubmit = async (text) => {
+  const handleQuestionSubmit = async (questionData) => {
     try {
       setIsLoading(true);
-      const newQuestion = {
-        title: text.slice(0, 100), // Use first 100 chars as title
-        description: text,
-      };
-      await submitQuestion(newQuestion);
+      const createdQuestion = await submitQuestion(questionData);
+      emitNewQuestion(createdQuestion); // Emit socket event
       toast.success("Question submitted successfully!");
-      await loadQuestions();
+      // No need to call loadQuestions here as socket will handle the update
     } catch (error) {
       toast.error("Failed to submit question");
       console.error("Error submitting question:", error);
     } finally {
       setIsLoading(false);
+      setIsDialogOpen(false);
     }
   };
 
@@ -149,70 +326,60 @@ const DoubtsPage = () => {
 
     try {
       setIsLoading(true);
-      const answer = { content: answerText, questionId: selectedQuestion._id };
+      const answer = {
+        content: answerText,
+        questionId: selectedQuestion._id,
+      };
       const createdAnswer = await submitAnswer(answer.questionId, answer);
-      setIsAnswerDialogOpen(false);
+      emitNewAnswer({ ...createdAnswer, question: answer.questionId });
       setAnswerText("");
-      await loadQuestions();
+      // No need to call loadQuestions here as socket will handle the update
     } catch (error) {
       toast.error("Failed to submit answer");
       console.error("Error submitting answer:", error);
     } finally {
       setIsLoading(false);
+      setIsAnswerDialogOpen(false);
     }
   };
 
-  const handleUpvote = async (questionId, answerId) => {
+  const handleUpvote = async (questionId) => {
     try {
-      const updatedAnswer = await upvoteAnswer(answerId);
+      const updatedQuestion = await upvoteQuestion(questionId);
 
       setQuestions((prevQuestions) =>
         prevQuestions.map((q) =>
           q._id === questionId
             ? {
                 ...q,
-                answers: q.answers.map((a) =>
-                  a._id === answerId
-                    ? {
-                        ...a,
-                        upvotes: updatedAnswer.upvotes,
-                      }
-                    : a
-                ),
+                upvotes: updatedQuestion.upvotes,
               }
             : q
         )
       );
     } catch (error) {
-      toast.error("Failed to upvote answer");
-      console.error("Error upvoting answer:", error);
+      toast.error("Failed to upvote question");
+      console.error("Error upvoting question:", error);
     }
   };
 
-  const handleDownvote = async (questionId, answerId) => {
+  const handleDownvote = async (questionId) => {
     try {
-      const updatedAnswer = await downvoteAnswer(answerId);
+      const updatedQuestion = await downvoteQuestion(questionId);
 
       setQuestions((prevQuestions) =>
         prevQuestions.map((q) =>
           q._id === questionId
             ? {
                 ...q,
-                answers: q.answers.map((a) =>
-                  a._id === answerId
-                    ? {
-                        ...a,
-                        downvotes: updatedAnswer.downvotes,
-                      }
-                    : a
-                ),
+                downvotes: updatedQuestion.downvotes,
               }
             : q
         )
       );
     } catch (error) {
-      toast.error("Failed to downvote answer");
-      console.error("Error downvoting answer:", error);
+      toast.error("Failed to downvote question");
+      console.error("Error downvoting question:", error);
     }
   };
 
@@ -226,6 +393,15 @@ const DoubtsPage = () => {
       toast.error("Failed to resolve question");
       console.error("Error resolving question:", error);
     }
+  };
+
+  const handleQuestionClick = (questionId) => {
+    navigate(`/questions/${questionId}`);
+  };
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    window.scrollTo(0, 0);
   };
 
   if (error) {
@@ -243,15 +419,49 @@ const DoubtsPage = () => {
   }
 
   return (
-    <div className="p-4 bg-gray-100 min-h-screen">
+    <div className="p-4 bg-[#222831] max-h-screen flex flex-col text-[#EEEEEE]">
       {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
+        <div className="fixed inset-0 flex items-center justify-center bg-[#424242] bg-opacity-50 z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
         </div>
       )}
 
-      <h2 className="text-3xl font-semibold mb-6">All Doubts</h2>
-
+      <h2 className="text-3xl font-semibold self-center mb-6">Discussions</h2>
+      <div className="flex justify-between mb-4">
+        <div>
+          <select
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
+            className="p-2 border rounded-md bg-[#222831]"
+          >
+            <option value="">All Categories</option>
+            {CATEGORIES.map((cat) => (
+              <option key={cat} value={cat}>
+                {cat}
+              </option>
+            ))}
+          </select>
+          <select
+            value={sortOption}
+            onChange={(e) => setSortOption(e.target.value)}
+            className="p-2 border rounded-md ml-2 bg-[#222831]"
+          >
+            {SORT_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </div>
+        <div>
+          <input
+            value={tagSearch}
+            onChange={(e) => setTagSearch(e.target.value)}
+            className="p-2 border rounded-md bg-[#222831]"
+            placeholder="Search by tag"
+          />
+        </div>
+      </div>
       {questions.length === 0 && !isLoading && !error ? (
         <div className="text-center">
           <p className="text-gray-500 mb-4">
@@ -266,94 +476,98 @@ const DoubtsPage = () => {
         </div>
       ) : (
         <div
-          className="space-y-4 overflow-y-auto"
+          className="space-y-4 flex-grow"
           style={{ maxHeight: "calc(100vh - 120px)" }}
         >
           {questions.map((question) => (
             <div
               key={question._id}
-              className="bg-white p-4 rounded-lg shadow-md"
+              className="bg-[#31363F] p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              onClick={() => handleQuestionClick(question._id)}
             >
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-xl font-semibold">{question.title}</h4>
-                <p className="text-sm text-gray-500">
-                  Asked by: {question.createdBy?.username}
-                </p>
-              </div>
-              <p className="mb-2">{question.description}</p>
-              <button
-                className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
-                onClick={() => toggleAnswerDialog(question)}
-              >
-                Answer
-              </button>
-              <button
-                className="bg-blue-500 text-white py-2 px-4 rounded-lg hover:bg-blue-600 ml-2"
-                onClick={() =>
-                  setQuestions((prevQuestions) =>
-                    prevQuestions.map((q) =>
-                      q._id === question._id
-                        ? { ...q, showAllAnswers: !q.showAllAnswers }
-                        : q
-                    )
-                  )
-                }
-              >
-                {question.showAllAnswers
-                  ? "Hide All Answers"
-                  : "Show All Answers"}
-              </button>
-              <button
-                className="bg-red-500 text-white py-2 px-4 rounded-lg hover:bg-red-600 ml-2"
-                onClick={() => handleResolveQuestion(question._id)}
-              >
-                Resolve
-              </button>
-              {question.showAllAnswers && (
-                <div className="mt-4 space-y-2">
-                  {question.answers?.map((answer) => (
-                    <div
-                      key={answer._id}
-                      className="bg-gray-50 p-4 rounded-lg shadow-sm"
-                    >
-                      <p>{answer.content || "Answer content not available"}</p>
-                      <div className="flex justify-between items-center mt-2">
-                        <p className="text-sm text-gray-500 italic">
-                          Answered by: {answer.createdBy?.username || "Unknown"}
-                        </p>
-                        <div className="flex space-x-2">
-                          <button
-                            className="bg-green-500 text-white py-1 px-2 rounded-lg hover:bg-green-600"
-                            onClick={() =>
-                              handleUpvote(question._id, answer._id)
-                            }
-                          >
-                            Upvote ({answer.upvotes || 0})
-                          </button>
-                          <button
-                            className="bg-red-500 text-white py-1 px-2 rounded-lg hover:bg-red-600"
-                            onClick={() =>
-                              handleDownvote(question._id, answer._id)
-                            }
-                          >
-                            Downvote ({answer.downvotes || 0})
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
+              <div className="flex justify-between items-start mb-3">
+                <div>
+                  <h3 className="text-xl font-semibold mb-2">
+                    {question.title}
+                  </h3>
+                  <p className="text-gray-300 mb-3">{question.description}</p>
+
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {question.tags.map((tag) => (
+                      <span
+                        key={tag}
+                        className="bg-blue-500 bg-opacity-20 text-blue-300 px-2 py-1 rounded-full text-sm"
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <span className="text-sm text-gray-400">
+                    Category: {question.category}
+                  </span>
                 </div>
-              )}
+
+                <div className="flex flex-col items-center space-y-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpvote(question._id);
+                    }}
+                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                  >
+                    <FaArrowAltCircleUp size={24} />
+                    <span>{question.upvotes || 0}</span>
+                  </button>
+
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownvote(question._id);
+                    }}
+                    className="text-gray-400 hover:text-red-500 transition-colors"
+                  >
+                    <FaArrowAltCircleDown size={24} />
+                    <span>{question.downvotes || 0}</span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-400">
+                    Asked by: {question.createdBy?.username}
+                  </span>
+                  <span>
+                    {new Date(question.createdAt).toLocaleDateString()}
+                  </span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleResolveQuestion(question._id);
+                  }}
+                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                >
+                  Resolve Question
+                </button>
+              </div>
             </div>
           ))}
         </div>
       )}
-
+      <footer>
+        <PaginationSlider
+          currentPage={page}
+          totalPages={totalPages}
+          onPageChange={handlePageChange}
+        />
+      </footer>
       <button
         className="fixed bottom-4 right-4 p-4 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 focus:outline-none"
         onClick={toggleDialog}
       >
-        Ask a Doubt
+        Ask a Question
       </button>
 
       <QuestionDialog
@@ -362,32 +576,13 @@ const DoubtsPage = () => {
         onSubmit={handleQuestionSubmit}
       />
 
-      {isAnswerDialogOpen && selectedQuestion && (
-        <div className="fixed inset-0 flex items-center justify-center bg-gray-800 bg-opacity-50 z-50">
-          <div className="bg-white p-6 rounded-lg shadow-lg w-80">
-            <h3 className="text-xl font-semibold mb-4">Answer Question</h3>
-            <textarea
-              value={answerText}
-              onChange={(e) => setAnswerText(e.target.value)}
-              className="w-full p-2 mb-4 border rounded-md"
-              rows="4"
-              placeholder="Type your answer here"
-            />
-            <button
-              onClick={handleAnswerSubmit}
-              className="w-full bg-green-500 text-white py-2 rounded-md"
-            >
-              Submit Answer
-            </button>
-            <button
-              onClick={() => setIsAnswerDialogOpen(false)}
-              className="w-full bg-gray-500 text-white py-2 rounded-md mt-2"
-            >
-              Close
-            </button>
-          </div>
-        </div>
-      )}
+      <AnswerDialog
+        isOpen={isAnswerDialogOpen}
+        onClose={() => setIsAnswerDialogOpen(false)}
+        onSubmit={handleAnswerSubmit}
+        answerText={answerText}
+        setAnswerText={setAnswerText}
+      />
     </div>
   );
 };

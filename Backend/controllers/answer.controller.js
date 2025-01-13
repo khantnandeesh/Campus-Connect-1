@@ -5,11 +5,13 @@ import Question from "../models/question.model.js";
 export const addAnswer = async (req, res) => {
   try {
     const { content, questionId } = req.body;
+    const { parentId } = req.params;
 
     const answer = await Answer.create({
       content,
       createdBy: req.user._id,
       question: questionId,
+      parent: parentId || null,
     });
 
     await Question.findByIdAndUpdate(questionId, {
@@ -91,19 +93,53 @@ export const downvoteAnswer = async (req, res) => {
 export const getAnswers = async (req, res) => {
   try {
     const { questionId } = req.params;
+    const { cursor, limit = 10 } = req.query;
 
-    const answers = await Answer.find({ question: questionId })
-      .populate("createdBy", "username email") // Populate the createdBy field with user data (e.g., username, email)
-      .sort({ upvotes: -1 }); // Sort answers by creation date (newest first)
+    const query = {
+      question: questionId,
+      parent: null, // Get only top-level answers
+    };
 
-    if (!answers) {
-      return res
-        .status(404)
-        .json({ message: "No answers found for this question" });
+    // If cursor is provided, fetch answers created before the cursor
+    if (cursor) {
+      query._id = { $lt: cursor };
     }
 
-    return res.status(200).json(answers);
+    const answers = await Answer.find(query)
+      .populate("createdBy", "username email")
+      .sort({ _id: -1 })
+      .limit(parseInt(limit) + 1); // Fetch one extra to check if more exists
+
+    const hasMore = answers.length > limit;
+    const nextCursor = hasMore ? answers[answers.length - 2]._id : null;
+
+    // Remove the extra answer if it exists
+    if (hasMore) {
+      answers.pop();
+    }
+
+    return res.status(200).json({
+      answers,
+      hasMore,
+      nextCursor: nextCursor ? nextCursor.toString() : null,
+    });
   } catch (error) {
     return res.status(500).json({ message: "Failed to fetch answers", error });
+  }
+};
+
+export const getReplies = async (req, res) => {
+  try {
+    const { answerId } = req.params;
+
+    const replies = await Answer.find({
+      parent: answerId,
+    })
+      .populate("createdBy", "username email")
+      .sort({ createdAt: 1 });
+
+    return res.status(200).json(replies);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch replies", error });
   }
 };

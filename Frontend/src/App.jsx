@@ -4,6 +4,7 @@ import Signup from "./pages/Signup";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DoubtsPage from "./pages/Doubt";
+import QuestionDetail from "./pages/QuestionDetail";
 
 const App = () => {
   return (
@@ -14,6 +15,7 @@ const App = () => {
         <Route path="/login" element={<Login />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/doubts" element={<DoubtsPage />} />
+        <Route path="/questions/:questionId" element={<QuestionDetail />} />
       </Routes>
     </Router>
   );

@@ -9,23 +9,55 @@ const router = express.Router();
 let otpStore = {};
 
 const transporter = nodemailer.createTransport({
-  service: "gmail",
-  secure: true,
-  port: 465,
+  host: "smtp.gmail.com",
+  port: 587,
+  secure: false,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: "uzed ejob wfrv ylgd",
+    pass: process.env.EMAIL_PASSWORD,
+  },
+  tls: {
+    rejectUnauthorized: false,
   },
 });
+
+// Verify transporter configuration
+transporter.verify(function (error, success) {
+  if (error) {
+    console.log("SMTP Server Error:", error);
+  } else {
+    console.log("SMTP Server is ready to send emails");
+  }
+});
+
+// Update the email sending function with better error handling
+async function sendEmail(to, subject, text) {
+  try {
+    const mailOptions = {
+      from: `"Campus Connect" <${process.env.EMAIL_USER}>`, // Make the from field more professional
+      to,
+      subject,
+      text,
+    };
+
+    console.log("Attempting to send email:", mailOptions);
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info.response);
+    return true;
+  } catch (error) {
+    console.error("Detailed email error:", error);
+    throw error;
+  }
+}
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 router.post("/signup", async (req, res) => {
-  const { username, password, email, collagename } = req.body;
+  const { username, password, email, collegename } = req.body;
 
-  if (!username || !password || !email || !collagename) {
+  if (!username || !password || !email || !collegename) {
     return res.status(400).json({ message: "All fields are required" });
   }
   if (password.length !== 8) {
@@ -35,7 +67,7 @@ router.post("/signup", async (req, res) => {
   }
 
   try {
-    const college = await CollegeDomain.findOne({ collagename });
+    const college = await CollegeDomain.findOne({ collegename: collegename });
     if (!college) {
       return res.status(400).json({ message: "College name is not valid" });
     }
@@ -57,12 +89,7 @@ router.post("/signup", async (req, res) => {
     const otp = generateOTP();
     otpStore[email] = otp;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: "Email Verification OTP",
-      text: `Your OTP is: ${otp}`,
-    });
+    await sendEmail(email, "Email Verification OTP", `Your OTP is: ${otp}`);
 
     res
       .status(200)
@@ -73,7 +100,9 @@ router.post("/signup", async (req, res) => {
 });
 
 router.post("/verify-signup", async (req, res) => {
-  const { username, password, email, collagename, otp } = req.body;
+  console.log("hit !");
+  const { username, password, email, collegename, otp } = req.body;
+  console.log(otp);
 
   if (!otp || otpStore[email] !== otp) {
     return res.status(400).json({ message: "Invalid or expired OTP" });
@@ -86,7 +115,7 @@ router.post("/verify-signup", async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collagename,
+      collegename,
     });
 
     await newUser.save();
@@ -94,6 +123,9 @@ router.post("/verify-signup", async (req, res) => {
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
+    console.log("erorr hit!");
+    console.log(error);
+
     res.status(500).json({ message: "Error saving user", error });
   }
 });
@@ -115,12 +147,11 @@ router.post("/login", async (req, res) => {
     const otp = generateOTP();
     otpStore[user.email] = otp;
 
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: user.email,
-      subject: "Login OTP Verification",
-      text: `Your OTP is: ${otp}`,
-    });
+    await sendEmail(
+      user.email,
+      "Login OTP Verification",
+      `Your OTP is: ${otp}`
+    );
 
     res.status(200).json({ message: "OTP sent to email. Verify to login." });
   } catch (error) {
@@ -140,7 +171,7 @@ router.post("/verify-login", async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "1h" }
+      { expiresIn: "120h" }
     );
 
     delete otpStore[user.email];

@@ -1,5 +1,6 @@
 import Question from "../models/question.model.js";
 import Answer from "../models/answer.model.js";
+
 // Create a new question
 export const createQuestion = async (req, res) => {
   try {
@@ -7,13 +8,14 @@ export const createQuestion = async (req, res) => {
       return res.status(400).json({ message: "User not authenticated" });
     }
 
-    const { title, description } = req.body;
-    console.log(req.body);
+    const { title, description, tags, category } = req.body;
     const userId = req.user._id;
 
     const newQuestion = new Question({
       title,
       description,
+      tags,
+      category,
       createdBy: userId,
     });
 
@@ -33,12 +35,76 @@ export const createQuestion = async (req, res) => {
 
 export const getAllQuestions = async (req, res) => {
   try {
-    const questions = await Question.find().populate("createdBy", "username");
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const sortBy = req.query.sortBy || "newest";
+    const category = req.query.category;
+    const tags = req.query.tags;
 
-    return res.status(200).json(questions);
+    const skip = (page - 1) * limit;
+
+    // Build query
+    const query = {};
+    if (category) query.category = category;
+    if (tags) query.tags = { $in: tags.split(",") };
+
+    // Build sort options
+    const sortOptions = {};
+    switch (sortBy) {
+      case "most_upvotes":
+        sortOptions.upvotes = -1;
+        break;
+      case "newest":
+      default:
+        sortOptions.createdAt = -1;
+    }
+
+    const questions = await Question.find(query)
+      .populate("createdBy", "username")
+      .sort(sortOptions)
+      .skip(skip)
+      .limit(limit);
+
+    const totalQuestions = await Question.countDocuments(query);
+    const hasMore = totalQuestions > skip + questions.length;
+
+    return res.status(200).json({
+      questions,
+      currentPage: page,
+      totalPages: Math.ceil(totalQuestions / limit),
+      hasMore,
+    });
   } catch (error) {
     console.error("Error fetching questions:", error);
     return res.status(500).json({ message: "Error fetching questions", error });
+  }
+};
+
+export const upvoteQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+    const question = await Question.findById(questionId);
+    question.upvotes += 1;
+    await question.save();
+
+    return res.status(200).json(question);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to upvote question" });
+  }
+};
+
+export const downvoteQuestion = async (req, res) => {
+  try {
+    const { questionId } = req.params;
+
+    const question = await Question.findById(questionId);
+    question.downvotes += 1;
+
+    await question.save();
+
+    return res.status(200).json(question);
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to downvote question" });
   }
 };
 
