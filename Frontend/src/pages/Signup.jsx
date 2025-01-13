@@ -6,7 +6,7 @@ const Signup = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
-  const [collagename, setCollagename] = useState('');
+  const [collegename, setCollegename] = useState('');
   const [colleges, setColleges] = useState([]);
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -32,7 +32,7 @@ const Signup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!username || !password || !email || !collagename) {
+    if (!username || !password || !email || !collegename) {
       alert('All fields are required!');
       return;
     }
@@ -47,7 +47,7 @@ const Signup = () => {
         username,
         password,
         email,
-        collagename,
+        collegename,
       });
 
       if (response.status === 200) {
@@ -73,7 +73,7 @@ const Signup = () => {
         username,
         password,
         email,
-        collagename,
+        collegename,
         otp,
       });
 
@@ -125,8 +125,8 @@ const Signup = () => {
           <div>
             <label className="block text-sm font-medium text-gray-700">College Name</label>
             <select
-              value={collagename}
-              onChange={(e) => setCollagename(e.target.value)}
+              value={collegename}
+              onChange={(e) => setCollegename(e.target.value)}
               required
               className="mt-1 block w-full px-3 py-2 border border-gray-300 bg-white rounded-md shadow-sm focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm"
             >
