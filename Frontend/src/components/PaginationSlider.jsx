@@ -11,7 +11,7 @@ const PaginationSlider = ({ currentPage, totalPages, onPageChange }) => {
         disabled={currentPage === 1}
         className="px-3 py-1 rounded-md bg-gray-700 text-white disabled:opacity-50"
       >
-        Previous
+        Prev
       </button>
 
       <div className="flex space-x-1">

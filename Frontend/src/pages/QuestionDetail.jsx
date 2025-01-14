@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback, Fragment } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom"; // Import useLocation
 import { toast } from "react-toastify";
 import {
   FaArrowAltCircleUp,
@@ -18,6 +18,8 @@ import {
   subscribeToReplies,
   emitNewAnswer,
   emitNewReply,
+  subscribeToLoadedAnswers,
+  cleanup,
 } from "../utils/Doubts/socket";
 import { Dialog, Transition } from "@headlessui/react";
 
@@ -112,14 +114,22 @@ const AnswerComponent = ({ answer, onReply, onVote }) => {
   const [replies, setReplies] = useState([]);
   const [replyPage, setReplyPage] = useState(1);
   const [hasMoreReplies, setHasMoreReplies] = useState(true);
+  const [isLoadingReplies, setIsLoadingReplies] = useState(false);
 
   const loadReplies = async () => {
     try {
+      setIsLoadingReplies(true);
       const response = await fetchReplies(answer._id, null, 5);
-      setReplies(response.replies);
-      setHasMoreReplies(response.hasMore);
+
+      if (Array.isArray(response.replies)) {
+        setReplies(response.replies);
+        setHasMoreReplies(response.hasMore);
+      }
     } catch (error) {
       console.error("Error loading replies:", error);
+      toast.error("Failed to load replies");
+    } finally {
+      setIsLoadingReplies(false);
     }
   };
 
@@ -134,20 +144,19 @@ const AnswerComponent = ({ answer, onReply, onVote }) => {
   return (
     <div className="bg-[#31363F] p-4 rounded-lg mb-4">
       <p className="mb-4">{answer.content}</p>
-
       <div className="flex justify-between items-center">
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-6">
+          <div className="flex gap-2">
             <button
               onClick={() => onVote(answer._id, "upvote")}
-              className="text-gray-400 hover:text-blue-500"
+              className="flex items-center space-x-1 text-gray-400 hover:text-blue-500"
             >
               <FaArrowAltCircleUp size={20} />
               <span>{answer.upvotes}</span>
             </button>
             <button
               onClick={() => onVote(answer._id, "downvote")}
-              className="text-gray-400 hover:text-red-500"
+              className="flex items-center space-x-1 text-gray-400 hover:text-red-500"
             >
               <FaArrowAltCircleDown size={20} />
               <span>{answer.downvotes}</span>
@@ -157,54 +166,61 @@ const AnswerComponent = ({ answer, onReply, onVote }) => {
             onClick={() => onReply(answer._id)}
             className="flex items-center space-x-1 text-blue-400 hover:text-blue-300"
           >
-            <FaReply />
+            <FaReply size={16} />
             <span>Reply</span>
+          </button>
+          <button
+            onClick={() => {
+              if (!showReplies) loadReplies();
+              setShowReplies(!showReplies);
+            }}
+            className="flex items-center space-x-1 text-blue-400 hover:text-blue-300"
+          >
+            <span>{showReplies ? "Hide replies" : "Show replies"}</span>
           </button>
         </div>
         <span className="text-sm text-gray-400">
           by {answer.createdBy?.username}
         </span>
       </div>
-    {/* yaha error hai */}
-      {replies.length > 0 && showReplies && (
+      {showReplies && (
         <div className="ml-8 mt-4 space-y-4">
-          {replies.map((reply) => (
-            <div key={reply._id} className="bg-[#404650] p-3 rounded">
-              <p>{reply.content}</p>
-              <div className="flex justify-end">
-                <span className="text-sm text-gray-400">
-                  by {reply.createdBy?.username}
-                </span>
-              </div>
-            </div>
-          ))}
-          {hasMoreReplies && (
-            <button
-              onClick={loadMoreReplies}
-              className="text-blue-400 hover:text-blue-300 text-sm"
-            >
-              Load more replies...
-            </button>
+          {isLoadingReplies ? (
+            <div>Loading replies...</div>
+          ) : replies && replies.length > 0 ? (
+            <>
+              {replies.map((reply) => (
+                <div key={reply._id} className="bg-[#404650] p-3 rounded">
+                  <p>{reply.content}</p>
+                  <div className="flex justify-end">
+                    <span className="text-sm text-gray-400">
+                      by {reply.createdBy?.username || "Anonymous"}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {hasMoreReplies && (
+                <button
+                  onClick={loadMoreReplies}
+                  className="text-blue-400 hover:text-blue-300 text-sm"
+                >
+                  Load more replies...
+                </button>
+              )}
+            </>
+          ) : (
+            <div>No replies yet</div>
           )}
         </div>
       )}
-
-      <button
-        onClick={() => {
-          if (!showReplies) loadReplies();
-          setShowReplies(!showReplies);
-        }}
-        className="mt-2 text-blue-400 hover:text-blue-300 text-sm"
-      >
-        {showReplies ? "Hide replies" : "Show replies"}
-      </button>
     </div>
   );
 };
 
 const QuestionDetail = () => {
   const { questionId } = useParams();
-  const [question, setQuestion] = useState(null);
+  const location = useLocation(); // Use useLocation to get the passed state
+  const [question, setQuestion] = useState(location.state?.question || null);
   const [answers, setAnswers] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -218,10 +234,16 @@ const QuestionDetail = () => {
     const loadAnswers = async () => {
       try {
         setIsLoading(true);
-        const { answers } = await fetchAnswersByIds(questionId);
-        setAnswers(answers);
+        const response = await fetchAnswersByIds(questionId);
+
+        if (Array.isArray(response.answers)) {
+          setAnswers(response.answers);
+          setHasMore(response.hasMore || false);
+        }
       } catch (error) {
         console.error("Error loading answers:", error);
+        toast.error("Failed to load answers");
+        setAnswers([]);
       } finally {
         setIsLoading(false);
       }
@@ -229,15 +251,40 @@ const QuestionDetail = () => {
 
     loadAnswers();
 
-    // Subscribe to new answers
-    subscribeToAnswers((newAnswer) => {
+    // Socket event handlers
+    const handleNewAnswer = (newAnswer) => {
       if (newAnswer.question === questionId) {
         setAnswers((prev) => [...prev, newAnswer]);
+      }
+    };
+
+    const handleLoadedAnswers = (loadedAnswers) => {
+      if (loadedAnswers.question === questionId) {
+        setAnswers(loadedAnswers.answers);
+      }
+    };
+
+    // Subscribe to socket events
+    subscribeToAnswers(handleNewAnswer);
+    subscribeToLoadedAnswers(handleLoadedAnswers);
+    subscribeToReplies((data) => {
+      if (data.reply.question === questionId) {
+        setAnswers((prev) =>
+          prev.map((answer) =>
+            answer._id === data.answerId
+              ? {
+                  ...answer,
+                  replies: [...(answer.replies || []), data.reply],
+                }
+              : answer
+          )
+        );
       }
     });
 
     return () => {
-      // Cleanup
+      // Cleanup socket subscriptions
+      cleanup();
     };
   }, [questionId]);
 
@@ -286,8 +333,13 @@ const QuestionDetail = () => {
   return (
     <div className="p-4 bg-[#222831] min-h-screen text-[#EEEEEE]">
       {question && (
-        <div className="mb-6 bg-[#31363F] p-6 rounded-lg">
-          <h1 className="text-2xl font-bold mb-4">{question.title}</h1>
+        <div className="mb-6 p-6 rounded-lg">
+          <div className="flex justify-between">
+            <h1 className="text-2xl font-bold mb-4">{question.title}</h1>
+            <span className="">
+              {new Date(question.createdAt).toLocaleDateString()}
+            </span>
+          </div>
           <p className="mb-4">{question.description}</p>
           <div className="flex flex-wrap gap-2 mb-4">
             {question.tags.map((tag) => (

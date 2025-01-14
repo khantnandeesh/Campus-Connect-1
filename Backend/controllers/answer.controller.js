@@ -4,8 +4,8 @@ import Question from "../models/question.model.js";
 
 export const addAnswer = async (req, res) => {
   try {
-    const { content, questionId } = req.body;
-    const { parentId } = req.params;
+    const { content } = req.body;
+    const { questionId, parentId } = req.params;
 
     const answer = await Answer.create({
       content,
@@ -18,9 +18,9 @@ export const addAnswer = async (req, res) => {
       $push: { answers: answer._id },
     });
 
-    await User.findByIdAndUpdate(req.user._id, {
-      $inc: { auraPoints: 5 },
-    });
+    // await User.findByIdAndUpdate(req.user._id, {
+    //   $inc: { auraPoints: 5 },
+    // });
 
     return res.status(201).json(answer);
   } catch (error) {
@@ -100,46 +100,50 @@ export const getAnswers = async (req, res) => {
       parent: null, // Get only top-level answers
     };
 
-    // If cursor is provided, fetch answers created before the cursor
     if (cursor) {
       query._id = { $lt: cursor };
     }
 
     const answers = await Answer.find(query)
       .populate("createdBy", "username email")
-      .sort({ _id: -1 })
-      .limit(parseInt(limit) + 1); // Fetch one extra to check if more exists
+      .sort({ createdAt: -1 })
+      .limit(parseInt(limit));
 
-    const hasMore = answers.length > limit;
-    const nextCursor = hasMore ? answers[answers.length - 2]._id : null;
+    // console.log("Found answers:", answers);
 
-    // Remove the extra answer if it exists
-    if (hasMore) {
-      answers.pop();
-    }
-
-    return res.status(200).json({
-      answers,
-      hasMore,
-      nextCursor: nextCursor ? nextCursor.toString() : null,
-    });
+    return res.status(200).json(answers);
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch answers", error });
+    console.error("Error in getAnswers:", error);
+    return res
+      .status(500)
+      .json({ message: "Failed to fetch answers", error: error.message });
   }
 };
 
 export const getReplies = async (req, res) => {
   try {
     const { answerId } = req.params;
+    const { cursor, limit = 5 } = req.query;
 
-    const replies = await Answer.find({
-      parent: answerId,
-    })
-      .populate("createdBy", "username email")
-      .sort({ createdAt: 1 });
+    const query = { parent: answerId };
+    if (cursor) {
+      query._id = { $lt: cursor };
+    }
 
-    return res.status(200).json(replies);
+    const replies = await Answer.find(query)
+      .sort({ _id: -1 })
+      .limit(parseInt(limit))
+      .populate("createdBy", "username");
+
+    const hasMore = replies.length === parseInt(limit);
+
+    res.json({
+      replies,
+      hasMore,
+      nextCursor: hasMore ? replies[replies.length - 1]._id : null,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to fetch replies", error });
+    console.error("Error in getReplies:", error);
+    res.status(500).json({ error: error.message });
   }
 };

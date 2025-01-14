@@ -38,11 +38,18 @@ export const fetchAnswersByIds = async (
   limit = 10
 ) => {
   try {
-    const params = new URLSearchParams({ limit: limit.toString() });
-    if (cursor) params.append("cursor", cursor);
+    const params = new URLSearchParams({
+      limit: limit.toString(),
+      ...(cursor && { cursor }),
+    });
 
     const response = await apiClient.get(`/answers/${questionId}?${params}`);
-    return response.data;
+    console.log("Answers response:", response.data); // Add this for debugging
+    return {
+      answers: response.data, // Change this line to match backend response
+      hasMore: false, // Backend needs to provide this
+      nextCursor: null, // Backend needs to provide this
+    };
   } catch (error) {
     console.error("Error fetching answers for question", questionId, error);
     return { answers: [], hasMore: false, nextCursor: null };
@@ -57,6 +64,8 @@ export const fetchReplies = async (answerId, cursor = null, limit = 5) => {
     const response = await apiClient.get(
       `/answers/replies/${answerId}?${params}`
     );
+    console.log(response.data);
+
     return response.data;
   } catch (error) {
     console.error("Error fetching replies for answer", answerId, error);
@@ -66,9 +75,9 @@ export const fetchReplies = async (answerId, cursor = null, limit = 5) => {
 
 export const submitQuestion = async (question) => {
   try {
-    console.log(question);
+    // console.log(question);
     const response = await apiClient.post("/questions", question);
-    console.log(response.data);
+    // console.log(response.data);
     return response.data;
   } catch (error) {
     console.error("Error submitting question:", error);
@@ -82,6 +91,9 @@ export const submitAnswer = async (questionId, answer, parentId = null) => {
     const endpoint = parentId
       ? `/answers/${questionId}/answers/${parentId}/reply`
       : `/answers/${questionId}/answers`;
+    // const payload = {
+    //   content: answer
+    // };
 
     const response = await apiClient.post(endpoint, answer);
     return response.data;

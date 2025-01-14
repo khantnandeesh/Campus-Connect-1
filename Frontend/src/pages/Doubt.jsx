@@ -395,8 +395,8 @@ const DoubtsPage = () => {
     }
   };
 
-  const handleQuestionClick = (questionId) => {
-    navigate(`/questions/${questionId}`);
+  const handleQuestionClick = (question) => {
+    navigate(`/questions/${question._id}`, { state: { question } });
   };
 
   const handlePageChange = (newPage) => {
@@ -419,7 +419,7 @@ const DoubtsPage = () => {
   }
 
   return (
-    <div className="p-4 bg-[#222831] max-h-screen flex flex-col text-[#EEEEEE]">
+    <div className="p-4 min-h-screen bg-[#222831] flex flex-col text-[#EEEEEE]">
       {isLoading && (
         <div className="fixed inset-0 flex items-center justify-center bg-[#424242] bg-opacity-50 z-50">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
@@ -476,14 +476,14 @@ const DoubtsPage = () => {
         </div>
       ) : (
         <div
-          className="space-y-4 flex-grow"
+          className="space-y-4 flex-grow overflow-auto"
           style={{ maxHeight: "calc(100vh - 120px)" }}
         >
           {questions.map((question) => (
             <div
               key={question._id}
               className="bg-[#31363F] p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
-              onClick={() => handleQuestionClick(question._id)}
+              onClick={() => handleQuestionClick(question)}
             >
               <div className="flex justify-between items-start mb-3">
                 <div>
@@ -556,7 +556,7 @@ const DoubtsPage = () => {
           ))}
         </div>
       )}
-      <footer>
+      <footer className="fixed -bottom-0 left-0 right-0 p-4 flex justify-center">
         <PaginationSlider
           currentPage={page}
           totalPages={totalPages}

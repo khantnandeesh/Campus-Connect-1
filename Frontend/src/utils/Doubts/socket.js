@@ -38,6 +38,10 @@ export const subscribeToAnswersPage = (callback) => {
   socket.on("answers_page_request", callback);
 };
 
+export const subscribeToLoadedAnswers = (callback) => {
+  socket.on("answers_loaded", callback);
+};
+
 // Reply related events
 export const subscribeToReplies = (callback) => {
   socket.on("reply_added", callback);
@@ -72,4 +76,5 @@ export const cleanup = () => {
   socket.off("questions_page_request");
   socket.off("answers_page_request");
   socket.off("replies_page_request");
+  socket.off("answers_loaded");
 };
