@@ -7,6 +7,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
+  const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
@@ -16,6 +17,7 @@ const Login = () => {
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setLoading(true); // Set loading to true when the request is being made
     try {
       const response = await axios.post(
         'http://localhost:3000/auth/login',
@@ -28,11 +30,14 @@ const Login = () => {
       }
     } catch (error) {
       setError(error.response ? error.response.data.message : 'An error occurred');
+    } finally {
+      setLoading(false); // Set loading to false after the request finishes
     }
   };
 
   const handleOtpSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true); // Set loading to true when the request is being made
     try {
       const response = await axios.post(
         'http://localhost:3000/auth/verify-login',
@@ -45,6 +50,27 @@ const Login = () => {
       }
     } catch (error) {
       setError(error.response ? error.response.data.message : 'An error occurred');
+    } finally {
+      setLoading(false); // Set loading to false after the request finishes
+    }
+  };
+
+  const handleResendOtp = async () => {
+    setLoading(true);
+    try {
+      const response = await axios.post(
+        'http://localhost:3000/auth/resend-otp',
+        { username },
+        { withCredentials: true }
+      );
+      if (response.status === 200) {
+        setError('');
+        alert('OTP has been resent!');
+      }
+    } catch (error) {
+      setError(error.response ? error.response.data.message : 'An error occurred');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -77,8 +103,9 @@ const Login = () => {
             <button
               type="submit"
               className="w-full bg-blue-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-blue-600 transition duration-300"
+              disabled={loading} // Disable button while loading
             >
-              Login
+              {loading ? 'Loading...' : 'Login'}
             </button>
           </form>
         ) : (
@@ -96,9 +123,20 @@ const Login = () => {
             <button
               type="submit"
               className="w-full bg-green-500 text-white font-medium py-2 px-4 rounded-lg hover:bg-green-600 transition duration-300"
+              disabled={loading} // Disable button while loading
             >
-              Verify OTP
+              {loading ? 'Verifying...' : 'Verify OTP'}
             </button>
+            <div className="mt-4 text-center">
+              <button
+                type="button"
+                onClick={handleResendOtp}
+                className="text-blue-500 hover:text-blue-700"
+                disabled={loading} // Disable button while loading
+              >
+                Resend OTP
+              </button>
+            </div>
           </form>
         )}
         {error && (

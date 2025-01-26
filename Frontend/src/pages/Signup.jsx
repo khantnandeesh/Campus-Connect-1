@@ -1,28 +1,28 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const Signup = () => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [email, setEmail] = useState('');
-  const [collegename, setCollegename] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [email, setEmail] = useState("");
+  const [collegename, setCollegename] = useState("");
   const [colleges, setColleges] = useState([]);
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [otpVerified, setOtpVerified] = useState(false);
+  const [loading, setLoading] = useState(false); // Loader state
+  const [resendTimer, setResendTimer] = useState(30); // Timer for resend OTP
 
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchColleges = async () => {
       try {
-        console.log("Fetching college data...");
-        const response = await axios.get('http://localhost:3000/college/colleges');
+        const response = await axios.get("http://localhost:3000/college/colleges");
         setColleges(response.data.colleges);
-        console.log(response.data.colleges);
       } catch (error) {
-        console.error('Error fetching colleges', error);
+        console.error("Error fetching colleges", error);
       }
     };
 
@@ -33,17 +33,18 @@ const Signup = () => {
     e.preventDefault();
 
     if (!username || !password || !email || !collegename) {
-      alert('All fields are required!');
+      alert("All fields are required!");
       return;
     }
 
     if (password.length !== 8) {
-      alert('Password must be 8 characters long');
+      alert("Password must be 8 characters long");
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/auth/signup', {
+      setLoading(true);
+      const response = await axios.post("http://localhost:3000/auth/signup", {
         username,
         password,
         email,
@@ -51,12 +52,16 @@ const Signup = () => {
       });
 
       if (response.status === 200) {
-        alert('OTP sent to your email! Please verify.');
+        alert("OTP sent to your email! Please verify.");
         setOtpSent(true);
+        setResendTimer(30); // Reset timer
+        startResendTimer();
       }
     } catch (error) {
-      console.error('Error during signup', error);
-      alert('Error during signup: ' + (error.response?.data?.message || error.message));
+      console.error("Error during signup", error);
+      alert("Error during signup: " + (error.response?.data?.message || error.message));
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -64,12 +69,13 @@ const Signup = () => {
     e.preventDefault();
 
     if (!otp) {
-      alert('Please enter OTP!');
+      alert("Please enter OTP!");
       return;
     }
 
     try {
-      const response = await axios.post('http://localhost:3000/auth/verify-signup', {
+      setLoading(true);
+      const response = await axios.post("http://localhost:3000/auth/verify-signup", {
         username,
         password,
         email,
@@ -78,13 +84,50 @@ const Signup = () => {
       });
 
       if (response.status === 201) {
-        alert('Signup successful! Redirecting to login page...');
-        navigate('/login');
+        alert("Signup successful! Redirecting to login page...");
+        navigate("/login");
       }
     } catch (error) {
-      console.error('Error during OTP verification', error);
-      alert('Invalid OTP or expired OTP');
+      console.error("Error during OTP verification", error);
+      alert("Invalid OTP or expired OTP");
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post("http://localhost:3000/auth/signup", {
+        username,
+        password,
+        email,
+        collegename,
+      });
+
+      if (response.status === 200) {
+        alert("OTP resent to your email!");
+        setResendTimer(30); // Reset timer
+        startResendTimer();
+      }
+    } catch (error) {
+      console.error("Error resending OTP", error);
+      alert("Failed to resend OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const startResendTimer = () => {
+    const interval = setInterval(() => {
+      setResendTimer((prev) => {
+        if (prev <= 1) {
+          clearInterval(interval);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
   };
 
   return (
@@ -141,8 +184,9 @@ const Signup = () => {
           <button
             type="submit"
             className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+            disabled={loading}
           >
-            Submit
+            {loading ? "Submitting..." : "Submit"}
           </button>
         </form>
 
@@ -163,10 +207,23 @@ const Signup = () => {
               <button
                 type="submit"
                 className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                disabled={loading}
               >
-                Verify OTP
+                {loading ? "Verifying..." : "Verify OTP"}
               </button>
             </form>
+            {resendTimer === 0 ? (
+              <button
+                onClick={handleResendOtp}
+                className="mt-4 w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-gray-600 hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+              >
+                Resend OTP
+              </button>
+            ) : (
+              <p className="mt-4 text-center text-sm text-gray-500">
+                Resend OTP in {resendTimer} seconds
+              </p>
+            )}
           </div>
         )}
       </div>
