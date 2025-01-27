@@ -22,6 +22,31 @@ function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
+async function sendEmailWithRetries({ to, subject, text }, maxAttempts = 3) {
+  let attempts = 0;
+  while (attempts < maxAttempts) {
+    try {
+      await transporter.sendMail({
+        from: process.env.EMAIL_USER,
+        to,
+        subject,
+        text,
+      });
+      console.log(`Email sent to: ${to} on attempt ${attempts + 1}`);
+      return true;
+    } catch (error) {
+      attempts++;
+      console.error(
+        `Attempt ${attempts}: Failed to send email to ${to}`,
+        error
+      );
+      if (attempts === maxAttempts) {
+        return false;
+      }
+    }
+  }
+}
+
 router.post("/signup", async (req, res) => {
   const { username, password, email, collegename } = req.body;
 
@@ -35,7 +60,7 @@ router.post("/signup", async (req, res) => {
   }
 
   try {
-    const college = await CollegeDomain.findOne({ collegename: collegename });
+    const college = await CollegeDomain.findOne({ collegename });
     if (!college) {
       return res.status(400).json({ message: "College name is not valid" });
     }
@@ -55,15 +80,19 @@ router.post("/signup", async (req, res) => {
     }
 
     const otp = generateOTP();
-    otpStore[email] = otp;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const emailSent = await sendEmailWithRetries({
       to: email,
       subject: "Email Verification OTP",
       text: `Your OTP is: ${otp}`,
     });
 
+    if (!emailSent) {
+      return res
+        .status(500)
+        .json({ message: "Failed to send OTP. Please try again." });
+    }
+
+    otpStore[email] = otp;
     res
       .status(200)
       .json({ message: "OTP sent to email. Verify to complete signup." });
@@ -118,18 +147,48 @@ router.post("/login", async (req, res) => {
     }
 
     const otp = generateOTP();
-    otpStore[user.email] = otp;
-
-    await transporter.sendMail({
-      from: process.env.EMAIL_USER,
+    const emailSent = await sendEmailWithRetries({
       to: user.email,
       subject: "Login OTP Verification",
       text: `Your OTP is: ${otp}`,
     });
 
+    if (!emailSent) {
+      return res
+        .status(500)
+        .json({ message: "Failed to send OTP. Please try again." });
+    }
+
+    otpStore[user.email] = otp;
     res.status(200).json({ message: "OTP sent to email. Verify to login." });
   } catch (error) {
     res.status(500).json({ message: "Error during login", error });
+  }
+});
+
+router.post("/verify-signup", async (req, res) => {
+  const { username, password, email, collegename, otp } = req.body;
+
+  if (!otp || otpStore[email] !== otp) {
+    return res.status(400).json({ message: "Invalid or expired OTP" });
+  }
+
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      username,
+      password: hashedPassword,
+      email,
+      collegename,
+    });
+
+    await newUser.save();
+    delete otpStore[email];
+
+    res.status(201).json({ message: "User registered successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error saving user", error });
   }
 });
 
@@ -139,6 +198,7 @@ router.post("/verify-login", async (req, res) => {
   try {
     const user = await User.findOne({ username });
     if (!user || otpStore[user.email] !== otp) {
+      return res.status(400).json({ message: "Invalid OTP or user" });
       return res.status(400).json({ message: "Invalid OTP or user" });
     }
 
