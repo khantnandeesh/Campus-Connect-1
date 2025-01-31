@@ -1,0 +1,50 @@
+import mongoose from "mongoose";
+
+const studyRoomSchema = new mongoose.Schema({
+    roomId: {
+        type: String,
+        required: true,
+        unique: true,
+    },
+    host: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+    },
+    participants: [
+        {
+            userId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+            username: String,   
+        }
+    ],
+    isRunning: {
+        type: Boolean,
+        default: false,
+    },
+    lastUpdated: { type: Date, default: Date.now },
+    timer: {
+        duration: { type: Number, default: 25 * 60 }, 
+        timeLeft: { type: Number, default: 25 * 60 },
+    },
+    chatMessages: [
+        {
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        message: String,
+        timestamp: { type: Date, default: Date.now },
+        },
+    ],
+    tasks: [
+        {
+            title: { type: String, required: true },
+            createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+            completed: { type: Boolean, default: false },
+            timestamp: { type: Date, default: Date.now },
+        }
+    ] 
+});
+
+const StudyRoom = mongoose.model("StudyRoom", studyRoomSchema);
+export default StudyRoom;

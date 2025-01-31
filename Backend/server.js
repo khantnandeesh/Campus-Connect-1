@@ -8,6 +8,7 @@ import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
+import roomRoutes from "./routes/room.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 
@@ -75,6 +76,43 @@ io.on("connection", (socket) => {
     socket.emit("replies_page_request", { answerId, cursor, limit });
   });
 
+  // Study room
+  socket.on("joinRoom", (roomId) => {
+    socket.join(roomId);
+    console.log("User joined room:", roomId);
+  });
+
+  socket.on("leaveRoom", (roomId) => {
+    socket.leave(roomId);
+    console.log("User left room:", roomId);
+  });
+
+  socket.on("message", (message) => {
+    io.to(roomId).emit("message", message);
+  });
+
+  socket.on('taskUpdated', (roomId, task) => {
+    io.to(roomId).emit('taskUpdated', task);
+  });
+
+  socket.on("startTimer", (roomId, duration) => {
+    io.to(roomId).emit("timerStarted", { duration });
+  });
+  
+  socket.on("updateTimer", (roomId, timeLeft) => {
+    io.to(roomId).emit("timerUpdated", { timeLeft });
+  });
+
+  socket.on("addTask", (roomId, task) => {
+    io.to(roomId).emit("taskAdded", task);
+  });
+
+  socket.on("deleteTask", (roomId, taskId) => {
+    io.to(roomId).emit("taskDeleted", taskId);
+  });
+  
+  
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
@@ -86,6 +124,7 @@ app.use("/auth", authRoutes);
 app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
+app.use("/api/rooms", roomRoutes);
 
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
