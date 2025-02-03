@@ -11,6 +11,7 @@ import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import { Server } from "socket.io";
 import http from "http";
+import StudyRoom from "./models/room.model.js";
 
 dotenv.config();
 
@@ -23,109 +24,183 @@ const io = new Server(server, {
   },
 });
 
-//Routes
+// Add timer management
+const activeTimers = new Map(); // Track active timers per room
+
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend URL
+    origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true, // Allow credentials (cookies) to be sent
+    credentials: true,
   })
 );
 
+// Inject io into requests
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+// Socket.io Events
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Room management
-  socket.on("join_question", (questionId) => {
-    socket.join(`question_${questionId}`);
-  });
+  // Study Room Events
+  const handleStudyRoomEvents = () => {
+    socket.on("joinRoom", async (roomId) => {
+      try {
+        socket.join(roomId);
+        console.log(`Socket ${socket.id} joined room ${roomId}`);
 
-  socket.on("leave_question", (questionId) => {
-    socket.leave(`question_${questionId}`);
-  });
-
-  // Questions
-  socket.on("new_question", (question) => {
-    io.emit("question_added", question);
-  });
-
-  socket.on("load_more_questions", ({ page, limit }) => {
-    socket.emit("questions_page_request", { page, limit });
-  });
-
-  // Answers
-  socket.on("new_answer", (answer) => {
-    io.to(`question_${answer.question}`).emit("answer_added", answer);
-  });
-
-  socket.on("load_more_answers", ({ questionId, cursor, limit }) => {
-    socket.emit("answers_page_request", { questionId, cursor, limit });
-  });
-
-  // Replies
-  socket.on("new_reply", ({ answerId, reply }) => {
-    io.to(`question_${reply.question}`).emit("reply_added", {
-      answerId,
-      reply,
+        // Send current room state
+        const room = await StudyRoom.findOne({ roomId });
+        if (room) {
+          socket.emit("timerUpdated", room.timer);
+          socket.emit("participantsUpdated", room.participants);
+          socket.emit("tasksUpdated", room.tasks);
+          socket.emit("messagesUpdated", room.chatMessages);
+        }
+      } catch (err) {
+        console.error("Join room error:", err);
+      }
     });
+
+    
+    socket.on("setDuration", async ({ roomId, duration }) => {
+      try {
+        const room = await StudyRoom.findOne({ roomId });
+        if (!room) return;
+        
+        room.timer.duration = duration;
+        if (!room.timer.isRunning) {
+          room.timer.timeLeft = duration;
+        }
+        
+        await room.save();
+        io.to(roomId).emit("timerUpdated", room.timer);
+      } catch (err) {
+        console.error("Duration update error:", err);
+      }
+    });
+
+    
+
+    // startTimer handler
+  socket.on("startTimer", async (roomId) => {
+    try {
+      if (activeTimers.has(roomId)) return;
+
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room || room.timer.timeLeft <= 0) return;
+
+      // Only reset timeLeft if timer is expired
+      if (room.timer.timeLeft <= 0) {
+        room.timer.timeLeft = room.timer.duration;
+      }
+
+      room.timer.isRunning = true;
+      await room.save();
+
+      const interval = setInterval(async () => {
+        const updatedRoom = await StudyRoom.findOne({ roomId });
+        if (!updatedRoom) {
+          clearInterval(interval);
+          activeTimers.delete(roomId);
+          return;
+        }
+
+        updatedRoom.timer.timeLeft--;
+        
+        if (updatedRoom.timer.timeLeft <= 0) {
+          updatedRoom.timer.isRunning = false;
+          clearInterval(interval);
+          activeTimers.delete(roomId);
+        }
+
+        await updatedRoom.save();
+        io.to(roomId).emit("timerUpdated", updatedRoom.timer);
+
+      }, 1000);
+
+      activeTimers.set(roomId, interval);
+      io.to(roomId).emit("timerUpdated", room.timer);
+
+    } catch (err) {
+      console.error("Start timer error:", err);
+    }
   });
 
-  socket.on("load_more_replies", ({ answerId, cursor, limit }) => {
-    socket.emit("replies_page_request", { answerId, cursor, limit });
-  });
+    // Add this to your socket.io server code
+  socket.on("stopTimer", async (roomId) => {
+    try {
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room) return;
 
-  // Study room
-  socket.on("joinRoom", (roomId) => {
-    socket.join(roomId);
-    console.log("User joined room:", roomId);
-  });
+      // Clear existing timer
+      if (activeTimers.has(roomId)) {
+        clearInterval(activeTimers.get(roomId));
+        activeTimers.delete(roomId);
+      }
 
-  socket.on("leaveRoom", (roomId) => {
-    socket.leave(roomId);
-    console.log("User left room:", roomId);
+      room.timer.isRunning = false;
+      await room.save();
+      
+      io.to(roomId).emit("timerUpdated", room.timer);
+    } catch (err) {
+      console.error("Stop timer error:", err);
+    }
   });
+  };
 
-  socket.on("message", (message) => {
-    io.to(roomId).emit("message", message);
-  });
+  // Question/Answer Events (existing functionality)
+  const handleQnAEvents = () => {
+    socket.on("join_question", (questionId) => {
+      socket.join(`question_${questionId}`);
+    });
 
-  socket.on('taskUpdated', (roomId, task) => {
-    io.to(roomId).emit('taskUpdated', task);
-  });
+    socket.on("leave_question", (questionId) => {
+      socket.leave(`question_${questionId}`);
+    });
 
-  socket.on("startTimer", (roomId, duration) => {
-    io.to(roomId).emit("timerStarted", { duration });
-  });
-  
-  socket.on("updateTimer", (roomId, timeLeft) => {
-    io.to(roomId).emit("timerUpdated", { timeLeft });
-  });
+    socket.on("new_question", (question) => {
+      io.emit("question_added", question);
+    });
 
-  socket.on("addTask", (roomId, task) => {
-    io.to(roomId).emit("taskAdded", task);
-  });
+    socket.on("new_answer", (answer) => {
+      io.to(`question_${answer.question}`).emit("answer_added", answer);
+    });
 
-  socket.on("deleteTask", (roomId, taskId) => {
-    io.to(roomId).emit("taskDeleted", taskId);
-  });
-  
-  
+    socket.on("new_reply", ({ answerId, reply }) => {
+      io.to(`question_${reply.question}`).emit("reply_added", {
+        answerId,
+        reply,
+      });
+    });
+  };
+
+  handleStudyRoomEvents();
+  handleQnAEvents();
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
+    // Cleanup any room-specific timers if needed
   });
 });
 
+// Database Connection
 connectDB();
 
+// Routes
 app.use("/auth", authRoutes);
 app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
 
+// Start Server
 const PORT = process.env.PORT || 5000;
 server.listen(PORT, () => {
   console.log(`Server running on port http://localhost:${PORT}`);

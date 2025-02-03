@@ -1,183 +1,226 @@
-import StudyRoom from "../models/room.model";
+import StudyRoom from "../models/room.model.js";
+import { v4 as uuidv4 } from "uuid";
 
-export const createRoom = async (req,res) => {
-    const { roomId, host } = req.body;
+// Create a new room
+export const createRoom = async (req, res) => {
+  try {
+    const roomId = uuidv4();
 
-    try {
-        let existingRoom = await StudyRoom.findOne({ roomId });
-        if(existingRoom){
-            return res.status(400).json({ message: 'Room already exists' });
-        }
-
-        const newRoom = new studyRoomSchema({ roomId, 
-                                                host , 
-                                                participants: [{ 
-                                                    userId: host, 
-                                                    username: req.user.username 
-                                                }]
-                                            });
-        await newRoom.save();
-
-        res.status(201).json(newRoom);
-        
-    } catch (error) {
-        res.status(500).json({ message: 'Error creating room', error });
+    const existingRoom = await StudyRoom.findOne({ roomId });
+    if (existingRoom) {
+      return res.status(400).json({ message: "Room already exists" });
     }
+
+    const newRoom = new StudyRoom({
+      roomId,
+      participants: [
+        {
+          userId: req.user?._id,
+          username: req.user ? req.user.username : "Unknown",
+        },
+      ],
+    });
+
+    await newRoom.save();
+
+    if (req.io) {
+      req.io.emit("roomCreated", newRoom);
+    }
+
+    res.status(201).json(newRoom);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Error creating room", error });
+  }
 };
 
-export const getRoom = async (req,res) => {
-    const { roomId } = req.body;
-
-    try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-
-        res.status(200).json(room);
-    } catch (error) {
-        res.status(500).json({ message: 'Error fetching room', error });
+// Get room details
+export const getRoom = async (req, res) => {
+  const { roomId } = req.params;
+  try {
+    const room = await StudyRoom.findOne({ roomId });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
     }
-}
-
-export const joinRoom = async (req,res) => {
-    const { roomId, userId, username } = req.body;
-
-    try {
-        let room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-
-        const alreadyInRoom = room.participants.find(participant => participant.userId === userId);
-        if (!alreadyInRoom) {
-            room.participants.push({ userId, username });
-            await room.save();
-        }
-
-        res.status(200).json(room);
-
-    } catch (error) {
-        res.status(500).json({ message: 'Error joining room', error });
-    }
+    res.status(200).json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching room", error });
+  }
 };
 
+// Join a room
+export const joinRoom = async (req, res) => {
+  const { roomId } = req.params;
+  const userId = req.user?._id;
+  const username = req.user?.username;
+  try {
+    const room = await StudyRoom.findOne({ roomId });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
 
-export const leaveRoom = async (req,res) => {
-    const {roomId, userId} = req.body;
+    const alreadyInRoom = room.participants.find(
+      (participant) => participant.userId.toString() === userId
+    );
+    if (!alreadyInRoom) {
+      room.participants.push({ userId, username });
+      await room.save();
+    }
 
+    req.io.to(roomId).emit("roomJoined", room);
+    res.status(200).json(room);
+  } catch (error) {
+    res.status(500).json({ message: "Error joining room", error });
+  }
+};
+
+// Leave a room
+export const leaveRoom = async (req, res) => {
+    const { roomId } = req.params;
+    const userId = req.user?._id; 
+    
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized - User not authenticated" });
+    }
+  
     try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room) {
+        return res.status(404).json({ message: "Room not found" });
+      }
 
-        room.participants = room.participants.filter(participant => participant.userId !== userId);
-        await room.save();
+      const originalCount = room.participants.length;
 
-        if(room.participants.length === 0){
-            await room.remove();
-            console.log('Room removed');
-            res.status(200).json({ message: 'Left room and room removed' });
-        }
-
-        res.status(200).json({ message: 'Left room', room });
+      room.participants = room.participants.filter(
+        (participant) => participant.userId.toString() !== userId.toString()
+      );
+ 
+      if (room.participants.length === originalCount) {
+        return res.status(400).json({ message: "User not in room" });
+      }
+  
+     
+      // Handle empty room condition
+      if (room.participants.length === 0) {
+        await StudyRoom.deleteOne({ _id: room._id });
+        req.io?.to(roomId).emit("roomClosed", { message: "Room closed" });
+        return res.status(200).json({ message: "Left room and room removed" });
+      }
+  
+      await room.save();
+      req.io?.to(roomId).emit("roomLeft", room);
+      res.status(200).json({ message: "Left room", room });
     } catch (error) {
-        res.status(500).json({ message: 'Error leaving room', error });
+      console.error("Error leaving room:", error);
+      res.status(500).json({ message: "Error leaving room", error: error.message });
     }
-};
+  };
 
-export const updateTimer = async (req,res) => {
-    const { isRunning, timer , roomId } = req.body;
 
+// Send Chat Message
+export const sendMessage = async (req, res) => {
+    const { roomId } = req.params;
+    const { message } = req.body;
+  
     try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-
-        room.isRunning = isRunning;
-        room.timer = timer;
-        
-        res.status(200).json({ message: 'Timer updated', room });
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room)
+        return res.status(404).json({ message: "Room not found" });
+  
+      // Create the message using the correct field name ("message")
+      const newMessage = {
+        message: message,
+        sender: req.user ? req.user._id : null,
+        timestamp: new Date(),
+      };
+  
+      room.chatMessages.push(newMessage);
+      await room.save();
+  
+      // Populate the sender field for the new message
+      await room.populate("chatMessages.sender");
+      const populatedMessage = room.chatMessages[room.chatMessages.length - 1];
+  
+      // Emit the populated message so the client can access sender.username
+      req.io.to(roomId).emit("newMessage", populatedMessage);
+      res.status(201).json(populatedMessage);
     } catch (error) {
-        res.status(500).json({ message: 'Error updating timer', error });
+      console.error("Error in sendMessage controller:", error);
+      res.status(500).json({ message: "Error sending message", error });
     }
-};
+  };
+  
 
-export const sendMessage = async (req,res) => {
-    const { roomId, sender, message } = req.body;
-
+// Add Task
+export const addTask = async (req, res) => {
+    const { roomId } = req.params;
+    const { title } = req.body;
+  
     try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-
-        room.chatMessages.push({ sender, message });
-        await room.save();
-
-        res.status(200).json({ message: 'Message sent', chatMessages: room.chatMessages });
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room) return res.status(404).json({ message: "Room not found" });
+  
+      const newTask = {
+        title,
+        createdBy: req.user ? req.user._id : null,
+      };
+  
+      room.tasks.push(newTask);
+      await room.save();
+  
+      // Get the newly added task from the room
+      const addedTask = room.tasks[room.tasks.length - 1];
+  
+      // Populate the createdBy field so that it contains user details
+      await room.populate("tasks.createdBy");
+  
+      req.io.to(roomId).emit("taskAdded", addedTask);
+      res.status(201).json(addedTask);
     } catch (error) {
-        res.status(500).json({ message: 'Error sending message', error });
+      res.status(500).json({ message: "Error adding task", error });
     }
+  };
+  
+
+// Update Task (toggle completed)
+export const updateTask = async (req, res) => {
+  const { roomId } = req.params;
+  const { taskId } = req.body;
+  try {
+    const room = await StudyRoom.findOne({ roomId });
+    if (!room) {
+      return res.status(404).json({ message: "Room not found" });
+    }
+    const task = room.tasks.id(taskId);
+    if (!task) {
+      return res.status(404).json({ message: "Task not found" });
+    }
+    task.completed = !task.completed;
+    await room.save();
+
+    req.io.to(roomId).emit("taskUpdated", task);
+    res.status(200).json(task);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating task", error });
+  }
 };
 
-export const addTask = async (req,res) => {
-    const { roomId, title, createdBy } = req.body;
+// Delete Task
+export const deleteTask = async (req, res) => {
+  const { roomId, taskId } = req.params;
 
-    try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
+  try {
+    const room = await StudyRoom.findOne({ roomId });
+    if (!room) return res.status(404).json({ message: "Room not found" });
 
-        room.tasks.push({ title, createdBy });
-        await room.save();
-        res.status(200).json(room.tasks);
-    }
-    catch (error) {
-        res.status(500).json({ message: 'Error adding task', error });
-    }
-};
+    room.tasks = room.tasks.filter(
+      (task) => task._id.toString() !== taskId
+    );
+    await room.save();
 
-export const updateTask = async (req,res) => {
-    const { roomId, taskId } = req.body;
-
-    try {
-        const room = await StudyRoom.findOne({ roomId});
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-
-        const task = room.tasks.id(taskId);
-        if(!task){
-            return res.status(404).json({ message: 'Task not found' });
-        }
-
-        task.completed = !task.completed;
-        await room.save();
-
-        res.status(200).json(task);
-    } catch (error) { 
-        res.status(500).json({ message: 'Error updating task', error });
-    }
-};
-
-export const deleteTask = async (req,res) => {
-    const { roomId, taskId } = req.body;
-
-    try {
-        const room = await StudyRoom.findOne({ roomId });
-        if(!room){
-            return res.status(404).json({ message: 'Room not found' });
-        }
-        
-        room.tasks = room.tasks.filter(task => task._id.toString() !== taskId);
-        await room.save();
-
-        res.status(200).json({ message: 'Task deleted', room });
-    } catch (error) {
-        res.status(500).json({ message: 'Error deleting task', error });
-    }
+    req.io.to(roomId).emit("taskDeleted", taskId);
+    res.status(200).json({ message: "Task deleted" });
+  } catch (error) {
+    res.status(500).json({ message: "Error deleting task", error });
+  }
 };

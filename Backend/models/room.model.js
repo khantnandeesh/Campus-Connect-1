@@ -6,11 +6,6 @@ const studyRoomSchema = new mongoose.Schema({
         required: true,
         unique: true,
     },
-    host: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
-        required: true,
-    },
     participants: [
         {
             userId: {
@@ -20,14 +15,11 @@ const studyRoomSchema = new mongoose.Schema({
             username: String,   
         }
     ],
-    isRunning: {
-        type: Boolean,
-        default: false,
-    },
     lastUpdated: { type: Date, default: Date.now },
     timer: {
         duration: { type: Number, default: 25 * 60 }, 
         timeLeft: { type: Number, default: 25 * 60 },
+        isRunning: { type: Boolean, default: false },
     },
     chatMessages: [
         {
@@ -41,7 +33,6 @@ const studyRoomSchema = new mongoose.Schema({
             title: { type: String, required: true },
             createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
             completed: { type: Boolean, default: false },
-            timestamp: { type: Date, default: Date.now },
         }
     ] 
 });

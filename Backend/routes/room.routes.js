@@ -1,44 +1,27 @@
-import express from 'express';
+import express from "express";
 import {
-    createRoom,
-    getRoom,
-    leaveRoom,
-    joinRoom,
-    updateTimer,
-    sendMessage,
-    addTask,
-    updateTask,
-    deleteTask
-} from '../controllers/room.controller.js';
-import protectRoute from '../middlewares/protectRoute.js';
+  createRoom,
+  getRoom,
+  joinRoom,
+  leaveRoom,
+  sendMessage,
+  addTask,
+  updateTask,
+  deleteTask,
+} from "../controllers/room.controller.js";
+import protectRoute from "../middlewares/protectRoute.js";
 
 const router = express.Router();
 
-// Get room details
-router.get('/room/:roomId', protectRoute , getRoom);
-
-// Create a new room
-router.post('/room', protectRoute , createRoom);
-
-// Join a room
-router.post('/room/:roomId/join', protectRoute , joinRoom);
-
-// Leave a room
-router.post('/room/:roomId/leave', protectRoute , leaveRoom);
-
-// Start/stop the Pomodoro timer
-router.post('/room/:roomId/timer', protectRoute , updateTimer);
-
-// Create a task in the room
-router.post('/room/:roomId/task', protectRoute , addTask);
-
-// Update a task in the room
-router.post('/room/:roomId/task/:taskId', protectRoute , updateTask);
-
-// Delete a task from the room
-router.delete('/room/:roomId/task/:taskId', protectRoute , deleteTask);
-
-// Send a chat message in the room
-router.post('/room/:roomId/chat', protectRoute , sendMessage);
+// HTTP Endpoints using controllers
+router.get("/:roomId", protectRoute, getRoom);
+router.post("/", protectRoute, createRoom);
+router.post("/:roomId/join", protectRoute, joinRoom);
+router.post("/:roomId/leave", protectRoute, leaveRoom);
+//router.post("/:roomId/timer", protectRoute, updateTimer);
+router.post("/:roomId/chat", protectRoute, sendMessage);
+router.post("/:roomId/task", protectRoute, addTask);
+router.post("/:roomId/task/:taskId", protectRoute, updateTask);
+router.delete("/:roomId/task/:taskId", protectRoute, deleteTask);
 
 export default router;

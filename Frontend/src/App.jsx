@@ -5,6 +5,8 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DoubtsPage from "./pages/Doubt";
 import QuestionDetail from "./pages/QuestionDetail";
+import Room from "./pages/Room";
+import StudyRoom from "./pages/StudyRoom";
 
 const App = () => {
   return (
@@ -16,6 +18,8 @@ const App = () => {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/doubts" element={<DoubtsPage />} />
         <Route path="/questions/:questionId" element={<QuestionDetail />} />
+        <Route path="/room" element={<Room />} />
+        <Route path="/room/:roomId" element={<StudyRoom />} />
       </Routes>
     </Router>
   );
