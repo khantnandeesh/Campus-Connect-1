@@ -18,6 +18,12 @@ const StudyRoom = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [duration, setDuration] = useState(25);
+  const [mode, setMode] = useState("work"); 
+
+  // Timer circle visualization
+  const radius = 80;
+  const circumference = 2 * Math.PI * radius;
+  const progress = ((timer / (duration * 60)) * circumference).toFixed(2);
 
   useEffect(() => {
     const fetchRoomData = async () => {
@@ -30,6 +36,7 @@ const StudyRoom = () => {
         setTimer(room.timer?.timeLeft || 25 * 60);
         setIsRunning(room.timer?.isRunning || false);
         setDuration((room.timer?.duration || 25 * 60) / 60);
+        setMode(room.timer?.mode || "work");
       } catch (err) {
         console.error("Error fetching room data:", err);
       }
@@ -40,6 +47,7 @@ const StudyRoom = () => {
         const res = await axios.get(`/api/rooms/${roomId}`);
         setTimer(res.data.timer.timeLeft);
         setIsRunning(res.data.timer.isRunning);
+        setMode(res.data.timer.mode);
       } catch (err) {
         console.error("Error fetching timer state:", err);
       }
@@ -61,6 +69,7 @@ const StudyRoom = () => {
       setTimer(timerData.timeLeft);
       setIsRunning(timerData.isRunning);
       setDuration(timerData.duration / 60);
+      setMode(timerData.mode);
     });
     socket.on("participantsUpdated", (updatedParticipants) =>
       setParticipants(updatedParticipants)
@@ -77,10 +86,11 @@ const StudyRoom = () => {
     };
   }, [roomId]);
 
+
   const handleDurationChange = (minutes) => {
     if (!isRunning && minutes > 0 && minutes <= 120) {
       setDuration(minutes);
-      socket.emit("setDuration", { roomId, duration: minutes * 60 });
+      socket.emit("setDuration", { roomId, duration: minutes * 60,mode });
     }
   };
 
@@ -101,6 +111,20 @@ const StudyRoom = () => {
       socket.emit("startTimer", roomId);
     }
   };
+
+  const toggleMode = () => {
+    const newMode = mode === "work" ? "break" : "work";
+    
+    // Stop timer first
+    socket.emit("stopTimer", roomId);
+    
+    socket.emit("toggleMode", { 
+        roomId, 
+        mode: newMode,
+        duration: newMode === "work" ? 25 * 60 : 5 * 60 
+        });
+  };
+
 
   const addTask = async () => {
     if (!task.trim()) return;
@@ -138,23 +162,52 @@ const StudyRoom = () => {
   };
 
   return (
-    <div className="container mx-auto p-6 bg-gray-100 min-h-screen">
-      <div className="max-w-6xl mx-auto bg-white rounded-lg shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="container mx-auto p-6 bg-gray-900 min-h-screen text-white">
+      <div className="max-w-6xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* Left Column */}
         <div className="md:col-span-1 flex flex-col items-center">
-          <div className="w-full bg-blue-500 text-white rounded-lg p-6 flex flex-col items-center">
-            <h2 className="text-3xl font-bold">Timer</h2>
-            <p className="mt-4 text-5xl">
-              {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
-            </p>
+          <div className="w-full bg-gray-700 text-white rounded-lg p-6 flex flex-col items-center">
+            <h2 className="text-3xl font-bold">
+              {mode === "work" ? "Focus Time" : "Break Time"}
+            </h2>
             
-            <div className="mt-4 flex flex-wrap gap-2 justify-center">
-              {[25, 30, 45, 60].map((min) => (
+            {/* Timer Circle */}
+            <div className="relative w-48 h-48 mt-4">
+              <svg className="w-full h-full transform -rotate-90">
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="80"
+                  className="stroke-current text-gray-600"
+                  strokeWidth="8"
+                  fill="transparent"
+                />
+                <circle
+                  cx="50%"
+                  cy="50%"
+                  r="80"
+                  className={`stroke-current ${mode === 'work' ? 'text-blue-400' : 'text-green-400'}`}
+                  strokeWidth="8"
+                  fill="transparent"
+                  strokeDasharray={`${progress} ${circumference}`}
+                />
+              </svg>
+              <div className="absolute inset-0 flex items-center justify-center">
+                <p className="text-4xl font-mono">
+                  {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, "0")}
+                </p>
+              </div>
+            </div>
+
+            {/* Duration Buttons */}
+            <div className="mt-6 flex flex-wrap gap-2 justify-center">
+              {(mode === "work" ? [25, 30, 45, 60] : [5, 15]).map((min) => (
                 <button
                   key={min}
                   onClick={() => handleDurationChange(min)}
                   className={`px-3 py-1 rounded ${
-                    duration === min ? "bg-blue-700" : "bg-blue-600 hover:bg-blue-700"
-                  } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                    duration === min ? 'bg-blue-600' : 'bg-gray-600 hover:bg-gray-500'
+                  } ${isRunning ? 'opacity-50 cursor-not-allowed' : ''}`}
                   disabled={isRunning}
                 >
                   {min}m
@@ -162,70 +215,81 @@ const StudyRoom = () => {
               ))}
             </div>
 
-            <button
-              className="mt-4 bg-blue-700 hover:bg-blue-800 px-4 py-2 rounded"
-              onClick={toggleTimer}
-            >
-              {isRunning ? "Stop Timer" : "Start Timer"}
-            </button>
+            {/* Control Buttons */}
+            <div className="mt-4 flex gap-2">
+              <button
+                className={`px-4 py-2 rounded ${
+                  isRunning ? 'bg-red-600 hover:bg-red-500' : 'bg-green-600 hover:bg-green-500'
+                }`}
+                onClick={toggleTimer}
+              >
+                {isRunning ? "Stop" : "Start"}
+              </button>
+              <button
+                className="px-4 py-2 bg-purple-600 rounded hover:bg-purple-500"
+                onClick={toggleMode}
+              >
+                {mode === "work" ? "Break" : "Work"}
+              </button>
+            </div>
           </div>
 
-          <div className="mt-6 w-full bg-green-100 rounded-lg p-4">
+          {/* Participants */}
+          <div className="mt-6 w-full bg-gray-700 rounded-lg p-4">
             <h2 className="text-xl font-semibold text-center">Participants</h2>
             {participants.length > 0 ? (
-              <ul className="mt-3">
+              <ul className="mt-3 space-y-2">
                 {participants.map((p, index) => (
                   <li
                     key={p.userId || `participant-${index}`}
-                    className="text-gray-800"
+                    className="flex items-center gap-2 text-gray-200"
                   >
+                    <div className="w-2 h-2 rounded-full bg-green-400"></div>
                     {p.username}
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-gray-600 text-center mt-2">No participants yet</p>
+              <p className="text-gray-400 text-center mt-2">No participants yet</p>
             )}
           </div>
           <button
             onClick={leaveRoom}
-            className="mt-6 text-red-500 hover:text-red-700"
+            className="mt-6 text-red-400 hover:text-red-300"
           >
             Leave Room
           </button>
         </div>
 
+        {/* Right Column */}
         <div className="md:col-span-2 space-y-6">
-          <div className="bg-gray-50 rounded-lg p-6 shadow">
+          {/* Chat Section */}
+          <div className="bg-gray-700 rounded-lg p-6 shadow">
             <h2 className="text-2xl font-semibold mb-4">Chat</h2>
-            <div className="border rounded-md p-4 h-64 overflow-y-auto">
-              {messages.length > 0 ? (
-                messages.map((msg) => (
-                  <p
-                    key={msg._id || msg.timestamp}
-                    className="mb-2 text-gray-700"
-                  >
-                    <span className="font-semibold">
-                      {msg.sender?.username || "Anonymous"}:{" "}
-                    </span>
-                    {msg.message}
+            <div className="border border-gray-600 rounded-md p-4 h-64 overflow-y-auto">
+              {messages.map((msg) => (
+                <div
+                  key={msg._id || msg.timestamp}
+                  className="mb-3 p-2 rounded-lg bg-gray-800"
+                >
+                  <p className="text-sm text-blue-300 font-medium">
+                    {msg.sender?.username || "Anonymous"}
                   </p>
-                ))
-              ) : (
-                <p className="text-gray-600">No messages yet.</p>
-              )}
+                  <p className="text-gray-200">{msg.message}</p>
+                </div>
+              ))}
             </div>
             <div className="mt-4 flex">
               <input
                 type="text"
-                className="w-full border p-3 rounded-l-md focus:outline-none"
+                className="w-full bg-gray-800 border border-gray-600 p-3 rounded-l-md focus:outline-none focus:border-blue-400"
                 placeholder="Type a message..."
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
               />
               <button
-                className="bg-blue-500 text-white px-4 rounded-r-md hover:bg-blue-600"
+                className="bg-blue-600 text-white px-4 rounded-r-md hover:bg-blue-500"
                 onClick={sendMessage}
               >
                 Send
@@ -233,43 +297,40 @@ const StudyRoom = () => {
             </div>
           </div>
 
-          <div className="bg-gray-50 rounded-lg p-6 shadow">
+          {/* Tasks Section */}
+          <div className="bg-gray-700 rounded-lg p-6 shadow">
             <h2 className="text-2xl font-semibold mb-4">Tasks</h2>
-            <div className="grid grid-cols-1 gap-4">
-              {tasks.length > 0 ? (
-                tasks.map((t) => (
-                  <div
-                    key={t._id}
-                    className={`border rounded-lg p-4 flex justify-between items-center shadow ${
-                      t.completed
-                        ? "bg-green-100 line-through text-gray-500"
-                        : "bg-white"
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <input
-                        type="checkbox"
-                        checked={t.completed}
-                        onChange={() => toggleTask(t._id, t.completed)}
-                        className="mr-2"
-                      />
-                      <span>{t.title}</span>
-                    </div>
-                    <button
-                      className="text-red-500 hover:text-red-700"
-                      onClick={() => deleteTask(t._id)}
-                    >
-                      ❌
-                    </button>
+            <div className="grid grid-cols-1 gap-3">
+              {tasks.map((t) => (
+                <div
+                  key={t._id}
+                  className={`p-3 rounded-lg flex justify-between items-center ${
+                    t.completed ? 'bg-gray-800' : 'bg-gray-800 border border-gray-600'
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={t.completed}
+                      onChange={() => toggleTask(t._id, t.completed)}
+                      className="w-4 h-4 text-blue-400 bg-gray-700 rounded focus:ring-blue-500"
+                    />
+                    <span className={`${t.completed ? 'text-gray-400 line-through' : 'text-gray-200'}`}>
+                      {t.title}
+                    </span>
                   </div>
-                ))
-              ) : (
-                <p className="text-gray-600">No tasks available.</p>
-              )}
+                  <button
+                    className="text-red-400 hover:text-red-300"
+                    onClick={() => deleteTask(t._id)}
+                  >
+                    ❌
+                  </button>
+                </div>
+              ))}
             </div>
             <input
               type="text"
-              className="w-full border p-3 rounded mt-4"
+              className="w-full bg-gray-800 border border-gray-600 p-3 rounded mt-4 focus:outline-none focus:border-blue-400"
               placeholder="Add a new task..."
               value={task}
               onChange={(e) => setTask(e.target.value)}

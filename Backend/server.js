@@ -69,15 +69,14 @@ io.on("connection", (socket) => {
     });
 
     
-    socket.on("setDuration", async ({ roomId, duration }) => {
+    socket.on("setDuration", async ({ roomId, duration,mode }) => {
       try {
         const room = await StudyRoom.findOne({ roomId });
         if (!room) return;
         
         room.timer.duration = duration;
-        if (!room.timer.isRunning) {
-          room.timer.timeLeft = duration;
-        }
+        room.timer.timeLeft = duration;
+      room.timer.mode = mode;
         
         await room.save();
         io.to(roomId).emit("timerUpdated", room.timer);
@@ -153,6 +152,25 @@ io.on("connection", (socket) => {
       console.error("Stop timer error:", err);
     }
   });
+
+  socket.on("toggleMode", async ({ roomId, mode , duration }) => {
+    try {
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room) return;
+
+      room.timer.isRunning = false;
+      room.timer.mode = mode;
+      room.timer.duration =  duration;
+      room.timer.timeLeft = duration;
+      
+      await room.save();
+      io.to(roomId).emit("timerUpdated", room.timer);
+    } catch (err) {
+      console.error("Mode toggle error:", err);
+    }
+  });
+
+
   };
 
   // Question/Answer Events (existing functionality)

@@ -17,6 +17,7 @@ const studyRoomSchema = new mongoose.Schema({
     ],
     lastUpdated: { type: Date, default: Date.now },
     timer: {
+        mode: { type: String, enum: ['work', 'break'], default: 'work' },
         duration: { type: Number, default: 25 * 60 }, 
         timeLeft: { type: Number, default: 25 * 60 },
         isRunning: { type: Boolean, default: false },
