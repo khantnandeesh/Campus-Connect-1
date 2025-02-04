@@ -24,7 +24,7 @@ const studyRoomSchema = new mongoose.Schema({
     },
     chatMessages: [
         {
-        sender: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        sender: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         message: String,
         timestamp: { type: Date, default: Date.now },
         },

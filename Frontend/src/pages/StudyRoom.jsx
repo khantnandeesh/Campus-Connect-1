@@ -18,7 +18,7 @@ const StudyRoom = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [participants, setParticipants] = useState([]);
   const [duration, setDuration] = useState(25);
-  const [mode, setMode] = useState("work"); 
+  const [mode, setMode] = useState("work");
 
   // Timer circle visualization
   const radius = 80;
@@ -30,9 +30,22 @@ const StudyRoom = () => {
       try {
         const res = await axios.get(`/api/rooms/${roomId}`);
         const room = res.data;
-        setParticipants(room.participants || []);
+        
+        // Ensure participants have username
+        const validParticipants = room.participants.map(p => ({
+          ...p,
+          username: p.username || "Anonymous"
+        }));
+        
+        // Ensure messages have sender info
+        const validMessages = room.chatMessages.map(msg => ({
+          ...msg,
+          sender: msg.sender || { username: "Anonymous" }
+        }));
+
+        setParticipants(validParticipants);
         setTasks(room.tasks || []);
-        setMessages(room.chatMessages || []);
+        setMessages(validMessages);
         setTimer(room.timer?.timeLeft || 25 * 60);
         setIsRunning(room.timer?.isRunning || false);
         setDuration((room.timer?.duration || 25 * 60) / 60);
@@ -57,13 +70,21 @@ const StudyRoom = () => {
     socket.emit("joinRoom", roomId);
     fetchRoomData();
 
-    socket.on("newMessage", (msg) => setMessages((prev) => [...prev, msg]));
-    socket.on("taskAdded", (newTask) => setTasks((prev) => [...prev, newTask]));
+    socket.on("newMessage", (msg) => {
+      // Ensure new messages have sender info
+      const validMsg = {
+        ...msg,
+        sender: msg.sender || { username: "Anonymous" }
+      };
+      setMessages(prev => [...prev, validMsg]);
+    });
+
+    socket.on("taskAdded", (newTask) => setTasks(prev => [...prev, newTask]));
     socket.on("taskDeleted", (taskId) =>
-      setTasks((prev) => prev.filter((t) => t._id !== taskId))
+      setTasks(prev => prev.filter(t => t._id !== taskId))
     );
     socket.on("taskUpdated", (updatedTask) =>
-      setTasks((prev) => prev.map((t) => (t._id === updatedTask._id ? updatedTask : t)))
+      setTasks(prev => prev.map(t => (t._id === updatedTask._id ? updatedTask : t)))
     );
     socket.on("timerUpdated", (timerData) => {
       setTimer(timerData.timeLeft);
@@ -72,7 +93,10 @@ const StudyRoom = () => {
       setMode(timerData.mode);
     });
     socket.on("participantsUpdated", (updatedParticipants) =>
-      setParticipants(updatedParticipants)
+      setParticipants(updatedParticipants.map(p => ({
+        ...p,
+        username: p.username || "Anonymous"
+      })))
     );
 
     return () => {
@@ -86,11 +110,10 @@ const StudyRoom = () => {
     };
   }, [roomId]);
 
-
   const handleDurationChange = (minutes) => {
     if (!isRunning && minutes > 0 && minutes <= 120) {
       setDuration(minutes);
-      socket.emit("setDuration", { roomId, duration: minutes * 60,mode });
+      socket.emit("setDuration", { roomId, duration: minutes * 60, mode });
     }
   };
 
@@ -114,17 +137,13 @@ const StudyRoom = () => {
 
   const toggleMode = () => {
     const newMode = mode === "work" ? "break" : "work";
-    
-    // Stop timer first
     socket.emit("stopTimer", roomId);
-    
-    socket.emit("toggleMode", { 
-        roomId, 
-        mode: newMode,
-        duration: newMode === "work" ? 25 * 60 : 5 * 60 
-        });
+    socket.emit("toggleMode", {
+      roomId,
+      mode: newMode,
+      duration: newMode === "work" ? 25 * 60 : 5 * 60
+    });
   };
-
 
   const addTask = async () => {
     if (!task.trim()) return;
@@ -273,7 +292,7 @@ const StudyRoom = () => {
                   className="mb-3 p-2 rounded-lg bg-gray-800"
                 >
                   <p className="text-sm text-blue-300 font-medium">
-                    {msg.sender?.username || "Anonymous"}
+                    {msg.sender?.username}
                   </p>
                   <p className="text-gray-200">{msg.message}</p>
                 </div>

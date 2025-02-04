@@ -38,7 +38,11 @@ export const createRoom = async (req, res) => {
 export const getRoom = async (req, res) => {
   const { roomId } = req.params;
   try {
-    const room = await StudyRoom.findOne({ roomId });
+    const room = await StudyRoom.findOne({ roomId })
+    .populate('participants.userId', 'username')
+      .populate('chatMessages.sender', 'username')
+      .populate('tasks.createdBy', 'username');
+
     if (!room) {
       return res.status(404).json({ message: "Room not found" });
     }
@@ -116,40 +120,39 @@ export const leaveRoom = async (req, res) => {
     }
   };
 
-
 // Send Chat Message
 export const sendMessage = async (req, res) => {
     const { roomId } = req.params;
     const { message } = req.body;
   
     try {
-      const room = await StudyRoom.findOne({ roomId });
-      if (!room)
-        return res.status(404).json({ message: "Room not found" });
+      if (!req.user) return res.status(401).json({ message: "Unauthorized" });
   
-      // Create the message using the correct field name ("message")
+      const room = await StudyRoom.findOne({ roomId });
+      if (!room) return res.status(404).json({ message: "Room not found" });
+  
       const newMessage = {
-        message: message,
-        sender: req.user ? req.user._id : null,
+        message,
+        sender: req.user._id,
         timestamp: new Date(),
       };
   
       room.chatMessages.push(newMessage);
       await room.save();
   
-      // Populate the sender field for the new message
-      await room.populate("chatMessages.sender");
+      // Populate the sender's information for all chat messages
+      await room.populate('chatMessages.sender', 'username');
+  
+      // Extract the newly added message (now populated)
       const populatedMessage = room.chatMessages[room.chatMessages.length - 1];
   
-      // Emit the populated message so the client can access sender.username
       req.io.to(roomId).emit("newMessage", populatedMessage);
       res.status(201).json(populatedMessage);
     } catch (error) {
-      console.error("Error in sendMessage controller:", error);
+      console.error("Error sending message:", error);
       res.status(500).json({ message: "Error sending message", error });
     }
   };
-  
 
 // Add Task
 export const addTask = async (req, res) => {
