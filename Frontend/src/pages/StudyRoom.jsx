@@ -19,6 +19,7 @@ const StudyRoom = () => {
   const [participants, setParticipants] = useState([]);
   const [duration, setDuration] = useState(25);
   const [mode, setMode] = useState("work");
+  const [showCopied, setShowCopied] = useState(false);
 
   // Timer circle visualization
   const radius = 80;
@@ -26,26 +27,21 @@ const StudyRoom = () => {
   const progress = ((timer / (duration * 60)) * circumference).toFixed(2);
 
   useEffect(() => {
+    if (showCopied) {
+      const timer = setTimeout(() => setShowCopied(false), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [showCopied]);
+
+  useEffect(() => {
     const fetchRoomData = async () => {
       try {
         const res = await axios.get(`/api/rooms/${roomId}`);
         const room = res.data;
         
-        // Ensure participants have username
-        const validParticipants = room.participants.map(p => ({
-          ...p,
-          username: p.username || "Anonymous"
-        }));
-        
-        // Ensure messages have sender info
-        const validMessages = room.chatMessages.map(msg => ({
-          ...msg,
-          sender: msg.sender || { username: "Anonymous" }
-        }));
-
-        setParticipants(validParticipants);
+        setParticipants(room.participants || []);
         setTasks(room.tasks || []);
-        setMessages(validMessages);
+        setMessages(room.chatMessages || []);
         setTimer(room.timer?.timeLeft || 25 * 60);
         setIsRunning(room.timer?.isRunning || false);
         setDuration((room.timer?.duration || 25 * 60) / 60);
@@ -71,12 +67,7 @@ const StudyRoom = () => {
     fetchRoomData();
 
     socket.on("newMessage", (msg) => {
-      // Ensure new messages have sender info
-      const validMsg = {
-        ...msg,
-        sender: msg.sender || { username: "Anonymous" }
-      };
-      setMessages(prev => [...prev, validMsg]);
+      setMessages(prev => [...prev, msg]);
     });
 
     socket.on("taskAdded", (newTask) => setTasks(prev => [...prev, newTask]));
@@ -92,12 +83,9 @@ const StudyRoom = () => {
       setDuration(timerData.duration / 60);
       setMode(timerData.mode);
     });
-    socket.on("participantsUpdated", (updatedParticipants) =>
-      setParticipants(updatedParticipants.map(p => ({
-        ...p,
-        username: p.username || "Anonymous"
-      })))
-    );
+    socket.on("participantsUpdated", (updatedParticipants) => {
+      setParticipants(updatedParticipants);
+    });
 
     return () => {
       socket.emit("leaveRoom", roomId);
@@ -180,6 +168,11 @@ const StudyRoom = () => {
     }
   };
 
+  const copyRoomId = () => {
+    navigator.clipboard.writeText(roomId);
+    setShowCopied(true);
+  };
+
   return (
     <div className="container mx-auto p-6 bg-gray-900 min-h-screen text-white">
       <div className="max-w-6xl mx-auto bg-gray-800 rounded-lg shadow-lg p-6 grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -190,7 +183,6 @@ const StudyRoom = () => {
               {mode === "work" ? "Focus Time" : "Break Time"}
             </h2>
             
-            {/* Timer Circle */}
             <div className="relative w-48 h-48 mt-4">
               <svg className="w-full h-full transform -rotate-90">
                 <circle
@@ -218,7 +210,6 @@ const StudyRoom = () => {
               </div>
             </div>
 
-            {/* Duration Buttons */}
             <div className="mt-6 flex flex-wrap gap-2 justify-center">
               {(mode === "work" ? [25, 30, 45, 60] : [5, 15]).map((min) => (
                 <button
@@ -234,7 +225,6 @@ const StudyRoom = () => {
               ))}
             </div>
 
-            {/* Control Buttons */}
             <div className="mt-4 flex gap-2">
               <button
                 className={`px-4 py-2 rounded ${
@@ -253,14 +243,28 @@ const StudyRoom = () => {
             </div>
           </div>
 
-          {/* Participants */}
           <div className="mt-6 w-full bg-gray-700 rounded-lg p-4">
-            <h2 className="text-xl font-semibold text-center">Participants</h2>
+            <div className="flex justify-between items-center mb-3">
+              <h2 className="text-xl font-semibold">Participants</h2>
+              <div className="relative">
+                <button
+                  onClick={copyRoomId}
+                  className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500 text-sm"
+                >
+                  Copy Room ID
+                </button>
+                {showCopied && (
+                  <span className="absolute -top-8 right-0 bg-gray-800 px-2 py-1 rounded text-sm">
+                    Copied!
+                  </span>
+                )}
+              </div>
+            </div>
             {participants.length > 0 ? (
-              <ul className="mt-3 space-y-2">
-                {participants.map((p, index) => (
+              <ul className="space-y-2">
+                {participants.map((p) => (
                   <li
-                    key={p.userId || `participant-${index}`}
+                    key={p._id || p.userId}
                     className="flex items-center gap-2 text-gray-200"
                   >
                     <div className="w-2 h-2 rounded-full bg-green-400"></div>
@@ -280,9 +284,7 @@ const StudyRoom = () => {
           </button>
         </div>
 
-        {/* Right Column */}
         <div className="md:col-span-2 space-y-6">
-          {/* Chat Section */}
           <div className="bg-gray-700 rounded-lg p-6 shadow">
             <h2 className="text-2xl font-semibold mb-4">Chat</h2>
             <div className="border border-gray-600 rounded-md p-4 h-64 overflow-y-auto">
@@ -316,7 +318,6 @@ const StudyRoom = () => {
             </div>
           </div>
 
-          {/* Tasks Section */}
           <div className="bg-gray-700 rounded-lg p-6 shadow">
             <h2 className="text-2xl font-semibold mb-4">Tasks</h2>
             <div className="grid grid-cols-1 gap-3">

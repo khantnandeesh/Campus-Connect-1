@@ -71,7 +71,7 @@ export const joinRoom = async (req, res) => {
       await room.save();
     }
 
-    req.io.to(roomId).emit("roomJoined", room);
+    req.io.to(req.params.roomId).emit("participantsUpdated", room.participants);
     res.status(200).json(room);
   } catch (error) {
     res.status(500).json({ message: "Error joining room", error });
@@ -112,7 +112,7 @@ export const leaveRoom = async (req, res) => {
       }
   
       await room.save();
-      req.io?.to(roomId).emit("roomLeft", room);
+      req.io?.to(req.params.roomId).emit("participantsUpdated", room.participants);
       res.status(200).json({ message: "Left room", room });
     } catch (error) {
       console.error("Error leaving room:", error);
