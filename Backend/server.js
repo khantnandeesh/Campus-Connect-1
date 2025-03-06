@@ -12,7 +12,9 @@ import roomRoutes from "./routes/room.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
-
+import Chat from "./models/chat.model.js";
+import Message from "./models/message.model.js";
+import Group from "./models/group.model.js";
 dotenv.config();
 
 const app = express();
@@ -68,17 +70,16 @@ io.on("connection", (socket) => {
       }
     });
 
-    
     socket.on("setDuration", async ({ roomId, duration }) => {
       try {
         const room = await StudyRoom.findOne({ roomId });
         if (!room) return;
-        
+
         room.timer.duration = duration;
         if (!room.timer.isRunning) {
           room.timer.timeLeft = duration;
         }
-        
+
         await room.save();
         io.to(roomId).emit("timerUpdated", room.timer);
       } catch (err) {
@@ -86,73 +87,69 @@ io.on("connection", (socket) => {
       }
     });
 
-    
-
     // startTimer handler
-  socket.on("startTimer", async (roomId) => {
-    try {
-      if (activeTimers.has(roomId)) return;
+    socket.on("startTimer", async (roomId) => {
+      try {
+        if (activeTimers.has(roomId)) return;
 
-      const room = await StudyRoom.findOne({ roomId });
-      if (!room || room.timer.timeLeft <= 0) return;
+        const room = await StudyRoom.findOne({ roomId });
+        if (!room || room.timer.timeLeft <= 0) return;
 
-      // Only reset timeLeft if timer is expired
-      if (room.timer.timeLeft <= 0) {
-        room.timer.timeLeft = room.timer.duration;
+        // Only reset timeLeft if timer is expired
+        if (room.timer.timeLeft <= 0) {
+          room.timer.timeLeft = room.timer.duration;
+        }
+
+        room.timer.isRunning = true;
+        await room.save();
+
+        const interval = setInterval(async () => {
+          const updatedRoom = await StudyRoom.findOne({ roomId });
+          if (!updatedRoom) {
+            clearInterval(interval);
+            activeTimers.delete(roomId);
+            return;
+          }
+
+          updatedRoom.timer.timeLeft--;
+
+          if (updatedRoom.timer.timeLeft <= 0) {
+            updatedRoom.timer.isRunning = false;
+            clearInterval(interval);
+            activeTimers.delete(roomId);
+          }
+
+          await updatedRoom.save();
+          io.to(roomId).emit("timerUpdated", updatedRoom.timer);
+        }, 1000);
+
+        activeTimers.set(roomId, interval);
+        io.to(roomId).emit("timerUpdated", room.timer);
+      } catch (err) {
+        console.error("Start timer error:", err);
       }
-
-      room.timer.isRunning = true;
-      await room.save();
-
-      const interval = setInterval(async () => {
-        const updatedRoom = await StudyRoom.findOne({ roomId });
-        if (!updatedRoom) {
-          clearInterval(interval);
-          activeTimers.delete(roomId);
-          return;
-        }
-
-        updatedRoom.timer.timeLeft--;
-        
-        if (updatedRoom.timer.timeLeft <= 0) {
-          updatedRoom.timer.isRunning = false;
-          clearInterval(interval);
-          activeTimers.delete(roomId);
-        }
-
-        await updatedRoom.save();
-        io.to(roomId).emit("timerUpdated", updatedRoom.timer);
-
-      }, 1000);
-
-      activeTimers.set(roomId, interval);
-      io.to(roomId).emit("timerUpdated", room.timer);
-
-    } catch (err) {
-      console.error("Start timer error:", err);
-    }
-  });
+    });
 
     // Add this to your socket.io server code
-  socket.on("stopTimer", async (roomId) => {
-    try {
-      const room = await StudyRoom.findOne({ roomId });
-      if (!room) return;
+    socket.on("stopTimer", async (roomId) => {
+      try {
+        const room = await StudyRoom.findOne({ roomId });
+        if (!room) return;
 
-      // Clear existing timer
-      if (activeTimers.has(roomId)) {
-        clearInterval(activeTimers.get(roomId));
-        activeTimers.delete(roomId);
+        // Clear existing timer
+        if (activeTimers.has(roomId)) {
+          clearInterval(activeTimers.get(roomId));
+          activeTimers.delete(roomId);
+        }
+
+        room.timer.isRunning = false;
+        await room.save();
+
+        io.to(roomId).emit("timerUpdated", room.timer);
+      } catch (err) {
+        console.error("Stop timer error:", err);
       }
-
-      room.timer.isRunning = false;
-      await room.save();
-      
-      io.to(roomId).emit("timerUpdated", room.timer);
-    } catch (err) {
-      console.error("Stop timer error:", err);
-    }
-  });
+    });
   };
 
   // Question/Answer Events (existing functionality)
@@ -181,8 +178,73 @@ io.on("connection", (socket) => {
     });
   };
 
+  //Chat features
+  const handleChatEvents = () => {
+    // Join personal chat rooms
+    socket.on("joinChat", (chatId) => {
+      socket.join(chatId);
+      console.log(`User joined chat: ${chatId}`);
+    });
+
+    // Handle personal chat messages
+    socket.on("sendMessage", async ({ chatId, sender, content }) => {
+      const message = new Message({ sender, content, chat: chatId });
+      await message.save();
+
+      await Chat.findByIdAndUpdate(chatId, {
+        $push: { messages: message._id },
+      });
+
+      io.to(chatId).emit("newMessage", message); // Send to all in the chat
+    });
+
+    // Join group chat rooms
+    socket.on("joinGroup", (groupId) => {
+      socket.join(groupId);
+      console.log(`User joined group: ${groupId}`);
+    });
+
+    // Handle group messages
+    socket.on("sendGroupMessage", async ({ groupId, sender, content }) => {
+      const message = new Message({ sender, content, group: groupId });
+      await message.save();
+
+      await Group.findByIdAndUpdate(groupId, {
+        $push: { messages: message._id },
+      });
+
+      io.to(groupId).emit("newGroupMessage", message); // Broadcast to group members
+    });
+
+    // Handle pinned messages in groups
+    socket.on("pinMessage", async ({ groupId, messageId }) => {
+      await Group.findByIdAndUpdate(groupId, {
+        $push: { pinnedMessages: messageId },
+      });
+      io.to(groupId).emit("messagePinned", messageId);
+    });
+
+    // Handle group announcements (can be global or private)
+    socket.on("postAnnouncement", async ({ groupId, content, isGlobal }) => {
+      const message = new Message({ content, group: groupId, isGlobal });
+      await message.save();
+
+      if (isGlobal) {
+        io.emit("globalAnnouncement", message); // Send to all users
+      } else {
+        io.to(groupId).emit("groupAnnouncement", message); // Send to group members only
+      }
+    });
+
+    // Handle poll voting updates
+    socket.on("votePoll", async ({ pollId, optionIndex }) => {
+      io.emit("pollUpdated", { pollId, optionIndex }); // Broadcast poll update
+    });
+  };
+
   handleStudyRoomEvents();
   handleQnAEvents();
+  handleChatEvents();
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
