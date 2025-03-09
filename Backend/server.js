@@ -4,32 +4,41 @@ import cors from "cors";
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
 import collegeRoutes from "./routes/collegeRoutes.js";
+import mentorRoutes from "./routes/mentorRoutes.js";
 import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import { Server } from "socket.io";
 import http from "http";
+import adminRoutes from "./routes/adminRoutes.js";
+import setupWebSocketServer from "./websocket/chatServer.js";
 
 dotenv.config();
 
 const app = express();
-const server = http.createServer(app);
+const server = setupWebSocketServer(app);
+
+// Configure Socket.IO with CORS
 const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-  },
+    credentials: true
+  }
 });
 
-//Routes
+// Middleware
 app.use(cookieParser());
 app.use(express.json());
+
+// Configure CORS
 app.use(
   cors({
-    origin: "http://localhost:5173", // Replace with your frontend URL
+    origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true, // Allow credentials (cookies) to be sent
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
@@ -67,7 +76,7 @@ io.on("connection", (socket) => {
   socket.on("new_reply", ({ answerId, reply }) => {
     io.to(`question_${reply.question}`).emit("reply_added", {
       answerId,
-      reply,
+      reply
     });
   });
 
@@ -80,14 +89,23 @@ io.on("connection", (socket) => {
   });
 });
 
-connectDB();
-
+// Routes
 app.use("/auth", authRoutes);
 app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
+app.use("/api/mentors", mentorRoutes);
+app.use("/api/admin", adminRoutes);
 
-const PORT = process.env.PORT || 5000;
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({ message: "Something went wrong!" });
+});
+
+connectDB();
+
+const PORT = 3000;
 server.listen(PORT, () => {
-  console.log(`Server running on port http://localhost:${PORT}`);
+  console.log(`Server running on port ${PORT}`);
 });
