@@ -6,7 +6,7 @@ import {
   upvoteQuestion,
   downvoteQuestion,
 } from "../controllers/question.controller.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 const router = express.Router();
 
 router.post("/", protectRoute, createQuestion);

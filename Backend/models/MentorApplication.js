@@ -43,7 +43,24 @@ const mentorApplicationSchema = new mongoose.Schema({
   appliedAt: {
     type: Date,
     default: Date.now
-  }
+  },
+  stars: {
+    type: Number,
+    default: 0
+  },
+  ratings: [
+    {
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true
+      },
+      stars: {
+        type: Number,
+        required: true
+      }
+    }
+  ]
 });
 
 export default mongoose.model("MentorApplication", mentorApplicationSchema);

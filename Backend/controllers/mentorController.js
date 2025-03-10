@@ -102,64 +102,57 @@ export const getMentorProfile = asyncHandler(async (req, res) => {
 // @access  Private
 export const getMentorsFromCollege = asyncHandler(async (req, res) => {
   try {
-    const { search } = req.query; // Get search query from request parameters
-    console.log("Search query:", search);
-
+    const { search } = req.body; // Get search from body
     const currentUser = await User.findById(req.user._id);
+
     if (!currentUser) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Build the query
-    const query = {
-      "userDetails.collegename": currentUser.collegename,
-      isMentor: true
+    // First find approved mentor applications from the same college
+    let query = {
+      status: "approved", // Only approved mentors
+      studentId: { $ne: currentUser._id } // Exclude current user
     };
 
-    // Add search condition if search term exists
-    if (search) {
-      query.$or = [
-        { "userDetails.username": { $regex: search, $options: "i" } },
-        { "userDetails.email": { $regex: search, $options: "i" } }
-      ];
-    }
+    // If search term exists, join with User model to search by email/username
+    const mentorApplications = await MentorApplication.find(query).populate({
+      path: "studentId",
+      select: "username email collegename",
+      match: search
+        ? {
+            $or: [
+              { email: { $regex: search, $options: "i" } },
+              { username: { $regex: search, $options: "i" } }
+            ],
+            collegename: currentUser.collegename
+          }
+        : { collegename: currentUser.collegename }
+    });
 
-    const mentors = await Admin.aggregate([
-      {
-        $lookup: {
-          from: "users",
-          localField: "userId",
-          foreignField: "_id",
-          as: "userDetails"
-        }
-      },
-      {
-        $unwind: "$userDetails"
-      },
-      {
-        $match: query
-      },
-      {
-        $project: {
-          _id: "$userDetails._id",
-          username: "$userDetails.username",
-          email: "$userDetails.email",
-          collegename: "$userDetails.collegename",
-          skills: "$skills",
-          bio: "$bio",
-          availability: "$availability",
-          rating: "$rating"
-        }
-      }
-    ]);
+    // Filter out applications where populate returned null (due to college mismatch)
+    const mentors = mentorApplications
+      .filter((app) => app.studentId !== null)
+      .map((app) => ({
+        _id: app.studentId._id,
+        username: app.studentId.username,
+        email: app.studentId.email,
+        collegename: app.studentId.collegename,
+        skills: app.skills,
+        achievements: app.achievements,
+        internships: app.internships,
+        spi: app.spi,
+        appliedAt: app.appliedAt,
+        stars: app.stars,
+        ratings: app.ratings,
+
+      }));
 
     console.log("Mentors found:", mentors);
     res.status(200).json(mentors);
   } catch (error) {
     console.error("Error in getMentorsFromCollege:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching mentors", error: error.message });
+    res.status(500).json({ message: "Error fetching mentors" });
   }
 });
 

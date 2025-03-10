@@ -14,6 +14,7 @@ const Dashboard = () => {
         const response = await axios.get("http://localhost:3000/auth/dashboard", {
           withCredentials: true,
         });
+        console.log(response.data);
         setUser(response.data.user);
         setLoading(false);
       } catch (err) {

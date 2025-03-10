@@ -13,7 +13,7 @@ import {
   searchUsers,
   createAdmin
 } from "../controllers/adminController.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 import Admin from "../models/admin.model.js";
 import jwt from "jsonwebtoken";
 

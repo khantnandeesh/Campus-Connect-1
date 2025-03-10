@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useSetRecoilState } from 'recoil';
+import { userState } from '../atoms/userAtoms';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -10,6 +12,7 @@ const Login = () => {
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const setUser = useSetRecoilState(userState);
 
   const handleUsernameChange = (e) => setUsername(e.target.value);
   const handlePasswordChange = (e) => setPassword(e.target.value);
@@ -46,6 +49,17 @@ const Login = () => {
       );
       if (response.status === 200) {
         localStorage.setItem('authToken', response.data.token);
+
+        // Fetch user data
+        const userResponse = await axios.get('http://localhost:3000/auth/me', {
+          headers: {
+            Authorization: `Bearer ${response.data.token}`
+          }
+        });
+
+        // Set user state
+        setUser(userResponse.data);
+
         navigate('/dashboard');
       }
     } catch (error) {

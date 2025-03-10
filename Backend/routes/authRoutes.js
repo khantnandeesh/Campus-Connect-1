@@ -14,8 +14,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: "uzed ejob wfrv ylgd",
-  },
+    pass: "uzed ejob wfrv ylgd"
+  }
 });
 
 function generateOTP() {
@@ -30,7 +30,7 @@ async function sendEmailWithRetries({ to, subject, text }, maxAttempts = 3) {
         from: process.env.EMAIL_USER,
         to,
         subject,
-        text,
+        text
       });
       console.log(`Email sent to: ${to} on attempt ${attempts + 1}`);
       return true;
@@ -83,7 +83,7 @@ router.post("/signup", async (req, res) => {
     const emailSent = await sendEmailWithRetries({
       to: email,
       subject: "Email Verification OTP",
-      text: `Your OTP is: ${otp}`,
+      text: `Your OTP is: ${otp}`
     });
 
     if (!emailSent) {
@@ -117,7 +117,7 @@ router.post("/verify-signup", async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collegename,
+      collegename
     });
 
     await newUser.save();
@@ -150,7 +150,7 @@ router.post("/login", async (req, res) => {
     const emailSent = await sendEmailWithRetries({
       to: user.email,
       subject: "Login OTP Verification",
-      text: `Your OTP is: ${otp}`,
+      text: `Your OTP is: ${otp}`
     });
 
     if (!emailSent) {
@@ -180,7 +180,7 @@ router.post("/verify-signup", async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collegename,
+      collegename
     });
 
     await newUser.save();
@@ -213,7 +213,7 @@ router.post("/verify-login", async (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       sameSite: "strict",
-      maxAge: 60 * 60 * 1000,
+      maxAge: 60 * 60 * 1000
     });
 
     res.status(200).json({ message: "Login successful", token });
@@ -250,6 +250,19 @@ router.get("/dashboard", authenticateUser, async (req, res) => {
       .json({ message: "Welcome to the dashboard", user: req.user });
   } catch (error) {
     res.status(500).json({ message: "Error loading dashboard", error });
+  }
+});
+
+// Get current user data
+router.get("/me", authenticateUser, async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching user data", error });
   }
 });
 

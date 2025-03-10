@@ -1,90 +1,104 @@
 import { WebSocketServer } from "ws";
-import http from "http";
-import express from "express";
+import mongoose from "mongoose";
+import Chat from "./models/Chat.js";
+import dotenv from "dotenv";
 
-const app = express();
-const server = http.createServer(app);
-const wss = new WebSocketServer({ server });
+dotenv.config();
 
-// Store active connections
+const wss = new WebSocketServer({ port: 3001 });
+
+// Store active connections with their user info
 const clients = new Map();
 
+// Connect to MongoDB
+mongoose
+  .connect(process.env.MONGODB_URI)
+  .then(() => console.log("WebSocket Server: Connected to MongoDB"))
+  .catch((err) =>
+    console.error("WebSocket Server: MongoDB connection error:", err)
+  );
+
 wss.on("connection", (ws) => {
-  console.log("New client connected to chat");
+  console.log("New client connected");
 
-  ws.on("message", (data) => {
+  ws.on("message", async (message) => {
     try {
-      // Convert Buffer to string and trim any whitespace
-      const message = Buffer.from(data).toString().trim();
-      console.log("Raw message received:", message); // Debug log
+      const data = JSON.parse(message);
 
-      const parsedMessage = JSON.parse(message);
-      console.log("Parsed message:", parsedMessage); // Debug log
-
-      switch (parsedMessage.type) {
-        case "join":
-          // Store user info with the connection
-          clients.set(ws, {
-            userId: parsedMessage.userId,
-            chatRoom: `${parsedMessage.mentorId}_${parsedMessage.userId}`
-          });
-          console.log(
-            `User ${parsedMessage.userId} joined chat with mentor ${parsedMessage.mentorId}`
-          );
-
-          // Send confirmation back to client
+      if (data.type === "join") {
+        if (!data.userId || !data.mentorId) {
           ws.send(
-            JSON.stringify({
-              type: "system",
-              content: "Connected to chat room",
-              timestamp: new Date().toISOString()
-            })
+            JSON.stringify({ type: "error", message: "Invalid join message" })
           );
-          break;
+          return;
+        }
+        // Store client info for this connection
+        clients.set(ws, { userId: data.userId, mentorId: data.mentorId });
 
-        case "message":
-          const sender = clients.get(ws);
-          if (sender) {
-            const messageToSend = {
-              type: "message",
-              sender: parsedMessage.sender,
-              content: parsedMessage.content,
-              timestamp: new Date().toISOString()
-            };
+        // Load previous messages
+        const previousMessages = await Chat.find({
+          $or: [
+            { userId: data.userId, mentorId: data.mentorId },
+            { userId: data.mentorId, mentorId: data.userId }
+          ]
+        }).sort({ timestamp: 1 });
 
-            // Broadcast to all clients in the same chat room
-            wss.clients.forEach((client) => {
-              const receiver = clients.get(client);
-              if (receiver && receiver.chatRoom === sender.chatRoom) {
-                client.send(JSON.stringify(messageToSend));
-              }
-            });
+        ws.send(
+          JSON.stringify({
+            type: "previous_messages",
+            messages: previousMessages
+          })
+        );
+      } else if (data.type === "chat") {
+        const clientInfo = clients.get(ws);
+        if (!clientInfo) {
+          ws.send(
+            JSON.stringify({ type: "error", message: "Not joined to chat" })
+          );
+          return;
+        }
+
+        const newMessage = new Chat({
+          userId: clientInfo.userId,
+          mentorId: clientInfo.mentorId,
+          message: data.message,
+          timestamp: new Date(),
+          messageType: data.messageType || "text",
+          imageUrl: data.imageUrl
+        });
+
+        await newMessage.save();
+
+        // Broadcast to relevant clients
+        wss.clients.forEach((client) => {
+          const recipientInfo = clients.get(client);
+          if (
+            recipientInfo &&
+            ((recipientInfo.userId === clientInfo.userId &&
+              recipientInfo.mentorId === clientInfo.mentorId) ||
+              (recipientInfo.userId === clientInfo.mentorId &&
+                recipientInfo.mentorId === clientInfo.userId))
+          ) {
+            client.send(
+              JSON.stringify({
+                type: "chat",
+                message: newMessage
+              })
+            );
           }
-          break;
-
-        default:
-          console.log("Unknown message type:", parsedMessage.type);
+        });
       }
     } catch (error) {
       console.error("Error processing message:", error);
-      // Send error back to client
-      try {
-        ws.send(
-          JSON.stringify({
-            type: "error",
-            content: "Failed to process message",
-            timestamp: new Date().toISOString()
-          })
-        );
-      } catch (e) {
-        console.error("Failed to send error message:", e);
-      }
+      ws.send(
+        JSON.stringify({ type: "error", message: "Internal server error" })
+      );
     }
   });
 
   ws.on("close", () => {
     clients.delete(ws);
-    console.log("Client disconnected from chat");
+    console.log("Client disconnected");
   });
 
   ws.on("error", (error) => {
@@ -93,7 +107,4 @@ wss.on("connection", (ws) => {
   });
 });
 
-const PORT = 3001;
-server.listen(PORT, () => {
-  console.log(`WebSocket server running on port ${PORT}`);
-});
+console.log("WebSocket server is running on ws://localhost:3001");

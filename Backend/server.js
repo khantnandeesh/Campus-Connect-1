@@ -13,6 +13,7 @@ import { Server } from "socket.io";
 import http from "http";
 import adminRoutes from "./routes/adminRoutes.js";
 import setupWebSocketServer from "./websocket/chatServer.js";
+import userRoutes from "./routes/userRoutes.js";
 
 dotenv.config();
 
@@ -95,7 +96,9 @@ app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/mentors", mentorRoutes);
+app.use("/api/mentor", mentorRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/users", userRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {
@@ -105,7 +108,7 @@ app.use((err, req, res, next) => {
 
 connectDB();
 
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

@@ -6,7 +6,7 @@ import {
   downvoteAnswer,
   getReplies,
 } from "../controllers/answer.controller.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 const router = express.Router();
 
 router.post("/:questionId/answers", protectRoute, addAnswer);

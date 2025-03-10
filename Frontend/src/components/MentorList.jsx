@@ -17,16 +17,25 @@ const MentorList = () => {
     const fetchMentors = async (search = '') => {
         try {
             setLoading(true);
-            const response = await axios.get('/api/mentors/college', {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                },
-                params: {
-                    search: search
+            const response = await axios.post('/api/mentors/college',
+                { search },
+                {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
                 }
-            });
+            );
             console.log("Mentors received:", response.data);
-            setMentors(response.data);
+            setMentors(response.data.map(mentor => {
+                
+                console.log('Mentor Ratings:', mentor.ratings);
+                const userRating = mentor.ratings.find(rating => rating.userId === localStorage.getItem('userId'));
+                console.log('User Rating:', userRating);
+                return {
+                    ...mentor,
+                    userRating: userRating ? userRating.stars : 0
+                };
+            }));
 
             const skills = new Set();
             response.data.forEach(mentor => {
@@ -67,11 +76,10 @@ const MentorList = () => {
                     <div className="mb-6">
                         <input
                             type="text"
-                            placeholder="Search mentors by name or email..."
+                            placeholder="Search mentors by email..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'
-                                } shadow-md`}
+                            className={`w-full p-3 rounded-lg ${isDarkMode ? 'bg-gray-800 text-white' : 'bg-white'} shadow-md`}
                         />
                     </div>
 
