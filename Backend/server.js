@@ -9,6 +9,7 @@ import dotenv from "dotenv";
 import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
+import productRoutes from "./routes/product.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
@@ -217,6 +218,7 @@ app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/products", productRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
