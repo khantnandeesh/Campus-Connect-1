@@ -9,6 +9,8 @@ import dotenv from "dotenv";
 import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
+import userRoutes from "./routes/user.routes.js";
+import uploadRoutes from "./routes/upload.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
@@ -23,6 +25,7 @@ const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true, // Add this line
   },
 });
 
@@ -36,7 +39,7 @@ app.use(
   cors({
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true,
+    credentials: true, // Add this line
   })
 );
 
@@ -240,6 +243,16 @@ io.on("connection", (socket) => {
     socket.on("votePoll", async ({ pollId, optionIndex }) => {
       io.emit("pollUpdated", { pollId, optionIndex }); // Broadcast poll update
     });
+    // socket.on("user-online", (userId) => {
+    //   users.set(userId, socket.id);
+    // });
+
+    socket.on("send-notification", ({ recipientId, message }) => {
+      const recipientSocket = users.get(recipientId);
+      if (recipientSocket) {
+        io.to(recipientSocket).emit("receive-notification", message);
+      }
+    });
   };
 
   handleStudyRoomEvents();
@@ -261,6 +274,8 @@ app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/users", userRoutes);
+app.use("/api/upload", uploadRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;

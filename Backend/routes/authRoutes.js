@@ -205,7 +205,7 @@ router.post("/verify-login", async (req, res) => {
     const token = jwt.sign(
       { id: user._id, username: user.username, email: user.email },
       process.env.JWT_SECRET,
-      { expiresIn: "24h" }
+      { expiresIn: "5d" }
     );
 
     delete otpStore[user.email];
@@ -213,7 +213,7 @@ router.post("/verify-login", async (req, res) => {
     res.cookie("authToken", token, {
       httpOnly: true,
       sameSite: "strict",
-      maxAge: 60 * 60 * 1000,
+      maxAge: 5 * 24 * 60 * 60 * 1000,
     });
 
     res.status(200).json({ message: "Login successful", token });
@@ -224,7 +224,6 @@ router.post("/verify-login", async (req, res) => {
 
 const authenticateUser = (req, res, next) => {
   const token = req.cookies.authToken;
-
   if (!token) {
     return res.status(401).json({ message: "Unauthorized" });
   }
