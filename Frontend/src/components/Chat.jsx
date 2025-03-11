@@ -1,166 +1,132 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router-dom';
-import { motion } from 'framer-motion';
-import { useRecoilState } from 'recoil';
-import { darkModeState } from '../atoms/mentorshipAtoms';
-import MentorshipNavbar from './MentorshipNavbar';
+import axios from 'axios';
+import { useRecoilValue } from 'recoil';
+import { userState } from '../atoms/userAtoms';
+import { onlineStatusState } from '../atoms/onlineStatusAtom';
 
 const Chat = () => {
-    const { mentorId } = useParams();
+    const { userId } = useParams();
     const [messages, setMessages] = useState([]);
     const [newMessage, setNewMessage] = useState('');
-    const [isDarkMode] = useRecoilState(darkModeState);
-    const [wsConnected, setWsConnected] = useState(false);
-    const ws = useRef(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
+    const [recipient, setRecipient] = useState(null);
     const messagesEndRef = useRef(null);
+    const user = useRecoilValue(userState);
+    const onlineStatus = useRecoilValue(onlineStatusState);
+
+    const scrollToBottom = () => {
+        messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    };
 
     useEffect(() => {
-        // Connect to WebSocket server on port 3001
-        ws.current = new WebSocket('ws://localhost:3001');
-
-        ws.current.onopen = () => {
-            console.log('Connected to chat server');
-            setWsConnected(true);
-
-            // Send join message
-            const joinMessage = {
-                type: 'join',
-                mentorId: mentorId,
-                userId: localStorage.getItem('userId')
-            };
-
+        const fetchMessages = async () => {
             try {
-                const jsonString = JSON.stringify(joinMessage);
-                console.log('Sending join message:', jsonString); // Debug log
-                ws.current.send(jsonString);
-            } catch (error) {
-                console.error('Error sending join message:', error);
+                const response = await axios.get(`http://localhost:3000/chat/messages/${userId}`, {
+                    withCredentials: true
+                });
+                setMessages(response.data.messages || []);
+
+                // Get recipient details
+                const userResponse = await axios.get(`http://localhost:3000/auth/user/${userId}`, {
+                    withCredentials: true
+                });
+                setRecipient(userResponse.data);
+
+                setLoading(false);
+            } catch (err) {
+                setError(err.response?.data?.message || 'Failed to fetch messages');
+                setLoading(false);
             }
         };
 
-        ws.current.onmessage = (event) => {
-            try {
-                console.log('Received raw message:', event.data); // Debug log
-                const data = JSON.parse(event.data);
-                console.log('Parsed message:', data); // Debug log
-
-                switch (data.type) {
-                    case 'message':
-                        setMessages(prev => [...prev, data]);
-                        break;
-                    case 'system':
-                        console.log('System message:', data.content);
-                        break;
-                    case 'error':
-                        console.error('Server error:', data.content);
-                        break;
-                    default:
-                        console.log('Unknown message type:', data.type);
-                }
-            } catch (error) {
-                console.error('Error handling message:', error);
-            }
-        };
-
-        ws.current.onclose = () => {
-            console.log('Disconnected from chat server');
-            setWsConnected(false);
-        };
-
-        ws.current.onerror = (error) => {
-            console.error('WebSocket error:', error);
-            setWsConnected(false);
-        };
-
-        return () => {
-            if (ws.current) {
-                ws.current.close();
-            }
-        };
-    }, [mentorId]);
+        fetchMessages();
+    }, [userId]);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+        scrollToBottom();
     }, [messages]);
 
-    const handleSendMessage = (e) => {
+    const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim() || !wsConnected || ws.current.readyState !== WebSocket.OPEN) return;
+        if (!newMessage.trim()) return;
 
         try {
-            const messageData = {
-                type: 'message',
-                sender: localStorage.getItem('username'),
-                content: newMessage.trim(),
-                mentorId: mentorId,
-                userId: localStorage.getItem('userId')
-            };
+            const response = await axios.post('http://localhost:3000/chat/message', {
+                recipientId: userId,
+                content: newMessage
+            }, {
+                withCredentials: true
+            });
 
-            const jsonString = JSON.stringify(messageData);
-            console.log('Sending message:', jsonString); // Debug log
-            ws.current.send(jsonString);
+            setMessages([...messages, response.data.messages[response.data.messages.length - 1]]);
             setNewMessage('');
-        } catch (error) {
-            console.error('Error sending message:', error);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Failed to send message');
         }
     };
 
-    return (
-        <>
-            <MentorshipNavbar isDarkMode={isDarkMode} />
-            <div className={`min-h-screen ${isDarkMode ? 'bg-black text-white' : 'bg-gray-50 text-gray-900'} pt-20 p-4`}>
-                <div className="max-w-3xl mx-auto">
-                    <div className={`h-[70vh] flex flex-col rounded-lg overflow-hidden ${isDarkMode ? 'bg-gray-800' : 'bg-white'} shadow-lg`}>
-                        <div className="flex-1 overflow-y-auto p-4">
-                            {messages.map((message, index) => (
-                                <div
-                                    key={index}
-                                    className={`mb-4 ${message.sender === localStorage.getItem('username') ? 'text-right' : ''}`}
-                                >
-                                    <div
-                                        className={`inline-block rounded-lg px-4 py-2 max-w-xs lg:max-w-md ${message.sender === localStorage.getItem('username')
-                                            ? 'bg-green-600 text-white'
-                                            : isDarkMode
-                                                ? 'bg-gray-700 text-white'
-                                                : 'bg-gray-100'
-                                            }`}
-                                    >
-                                        <p className="font-semibold text-sm">{message.sender}</p>
-                                        <p>{message.content}</p>
-                                        <p className="text-xs opacity-75 mt-1">
-                                            {new Date(message.timestamp).toLocaleTimeString()}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
-                            <div ref={messagesEndRef} />
-                        </div>
+    if (loading) return <div className="text-center p-4">Loading...</div>;
+    if (error) return <div className="text-center text-red-500 p-4">{error}</div>;
 
-                        <form onSubmit={handleSendMessage} className="p-4 border-t border-gray-700">
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newMessage}
-                                    onChange={(e) => setNewMessage(e.target.value)}
-                                    placeholder="Type your message..."
-                                    className={`flex-1 p-2 rounded-lg ${isDarkMode ? 'bg-gray-700' : 'bg-gray-100'
-                                        }`}
-                                    disabled={!wsConnected}
-                                />
-                                <button
-                                    type="submit"
-                                    className={`bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors ${!wsConnected && 'opacity-50 cursor-not-allowed'
-                                        }`}
-                                    disabled={!wsConnected}
-                                >
-                                    Send
-                                </button>
-                            </div>
-                        </form>
-                    </div>
+    return (
+        <div className="max-w-4xl mx-auto p-4 h-[calc(100vh-4rem)]">
+            <div className="bg-white rounded-lg shadow-lg h-full flex flex-col">
+                {/* Header */}
+                <div className="p-4 border-b flex items-center space-x-3">
+                    <div className={`w-3 h-3 rounded-full ${onlineStatus.users.includes(userId) || onlineStatus.mentors.includes(userId)
+                        ? 'bg-green-500'
+                        : 'bg-red-500'
+                        }`} />
+                    <h2 className="text-xl font-semibold">
+                        {recipient?.username || 'Chat'}
+                    </h2>
                 </div>
+
+                {/* Messages */}
+                <div className="flex-1 overflow-y-auto p-4 space-y-4">
+                    {messages.map((message, index) => (
+                        <div
+                            key={index}
+                            className={`flex ${message.senderId === user._id ? 'justify-end' : 'justify-start'}`}
+                        >
+                            <div
+                                className={`max-w-[70%] rounded-lg p-3 ${message.senderId === user._id
+                                    ? 'bg-blue-500 text-white'
+                                    : 'bg-gray-100'
+                                    }`}
+                            >
+                                <p>{message.content}</p>
+                                <p className="text-xs mt-1 opacity-70">
+                                    {new Date(message.timestamp).toLocaleTimeString()}
+                                </p>
+                            </div>
+                        </div>
+                    ))}
+                    <div ref={messagesEndRef} />
+                </div>
+
+                {/* Input */}
+                <form onSubmit={handleSendMessage} className="p-4 border-t">
+                    <div className="flex space-x-4">
+                        <input
+                            type="text"
+                            value={newMessage}
+                            onChange={(e) => setNewMessage(e.target.value)}
+                            placeholder="Type a message..."
+                            className="flex-1 p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <button
+                            type="submit"
+                            className="bg-blue-500 text-white px-6 py-2 rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                            Send
+                        </button>
+                    </div>
+                </form>
             </div>
-        </>
+        </div>
     );
 };
 

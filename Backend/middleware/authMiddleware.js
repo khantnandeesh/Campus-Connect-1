@@ -23,6 +23,5 @@ export const protect = async (req, res, next) => {
   }
 };
 
-export default {
-  protect
-};
+// Export protect directly since it's the only middleware
+export default protect;

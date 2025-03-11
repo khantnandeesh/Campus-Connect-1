@@ -15,6 +15,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 import setupWebSocketServer from "./websocket/chatServer.js";
 import userRoutes from "./routes/userRoutes.js";
 
+
 dotenv.config();
 
 const app = express();
@@ -99,6 +100,7 @@ app.use("/api/mentors", mentorRoutes);
 app.use("/api/mentor", mentorRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/users", userRoutes);
+// app.use("/chat", chatRoutes);
 
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -47,22 +47,14 @@ const Login = () => {
         { username, otp },
         { withCredentials: true }
       );
-      if (response.status === 200) {
-        localStorage.setItem('authToken', response.data.token);
+      if (response.data.token) {
+      
 
-        // Fetch user data
-        const userResponse = await axios.get('http://localhost:3000/auth/me', {
-          headers: {
-            Authorization: `Bearer ${response.data.token}`
-          }
-        });
-
-        // Set user state
-        setUser(userResponse.data);
 
         navigate('/dashboard');
       }
     } catch (error) {
+      console.log(error);
       setError(error.response ? error.response.data.message : 'An error occurred');
     } finally {
       setLoading(false); // Set loading to false after the request finishes
