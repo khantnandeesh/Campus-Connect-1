@@ -1,45 +1,104 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import axios from "axios";
-import { useSelector } from "react-redux";
+import { Link } from "react-router-dom";
 
 const Marketplace = () => {
   const [products, setProducts] = useState([]);
-  const user = useSelector((state) => state.auth.user);
+  const [wishlist, setWishlist] = useState(new Set());
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("");
+  const [sort, setSort] = useState("");
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const res = await axios.get("http://localhost:3000/api/products");
-        const allProducts = res.data;
-
-        const filteredProducts = allProducts.filter(
-          (product) => product.sellerId !== user?._id
-        );
-
-        setProducts(filteredProducts);
+        const response = await axios.get("http://localhost:3000/api/marketplace/products");
+        setProducts(response.data);
+        const uniqueCategories = [...new Set(response.data.map((product) => product.category))];
+        setCategories(uniqueCategories);
       } catch (error) {
         console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchProducts();
-  }, [user]);
+  }, []);
+
+  const filteredProducts = products
+    .filter((product) => product.title.toLowerCase().includes(search.toLowerCase()))
+    .filter((product) => (category ? product.category === category : true))
+    .sort((a, b) => {
+      if (sort === "low-high") return a.price - b.price;
+      if (sort === "high-low") return b.price - a.price;
+      if (sort === "newest") return new Date(b.createdAt) - new Date(a.createdAt);
+      return 0;
+    });
 
   return (
-    <div className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Marketplace</h1>
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {products.map((product) => (
-          <div key={product._id} className="border p-4 rounded shadow-lg">
-            <img src={product.images[0]} alt={product.name} className="w-full h-40 object-cover rounded" />
-            <h2 className="text-lg font-semibold mt-2">{product.name}</h2>
-            <p className="text-gray-700">₹{product.price}</p>
-            <button className="mt-2 bg-blue-500 text-white px-4 py-2 rounded">
-              View Details
-            </button>
-          </div>
-        ))}
+    <div className="p-6 bg-gray-900 min-h-screen text-white">
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+        <h2 className="text-3xl font-semibold">Marketplace</h2>
+        <div className="flex space-x-4">
+          <Link to="/marketplace/wishlist" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+            ❤️ Wishlist
+          </Link>
+          <Link to="/marketplace/add" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+            ➕ Add Product
+          </Link>
+        </div>
       </div>
+
+      <div className="flex flex-col sm:flex-row gap-4 mb-6">
+        <input
+          type="text"
+          placeholder="Search products..."
+          className="p-3 w-full sm:w-1/3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+        />
+        <select
+          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={category}
+          onChange={(e) => setCategory(e.target.value)}
+        >
+          <option value="">All Categories</option>
+          {categories.map((cat) => (
+            <option key={cat} value={cat}>{cat}</option>
+          ))}
+        </select>
+        <select
+          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          value={sort}
+          onChange={(e) => setSort(e.target.value)}
+        >
+          <option value="">Sort By</option>
+          <option value="low-high">Price: Low to High</option>
+          <option value="high-low">Price: High to Low</option>
+          <option value="newest">Newest Listings</option>
+        </select>
+      </div>
+
+      {loading ? (
+        <p className="text-center text-gray-400">Loading products...</p>
+      ) : filteredProducts.length === 0 ? (
+        <p className="text-center text-gray-400">No products available</p>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {filteredProducts.map((product) => (
+            <div key={product._id} className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform">
+              <Link to={`/marketplace/${product._id}`} className="block">
+                <img src={product.images[0]} alt={product.title} className="w-full h-48 object-cover rounded-lg" />
+                <h3 className="text-xl font-medium mt-3">{product.title}</h3>
+                <p className="text-green-400 text-lg font-semibold">₹{product.price}</p>
+              </Link>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };

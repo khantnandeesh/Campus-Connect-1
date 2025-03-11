@@ -9,7 +9,11 @@ import Room from "./pages/Room";
 import StudyRoom from "./pages/StudyRoom";
 import Marketplace from "./pages/Marketplace";
 import { useSelector } from "react-redux";
-import AddProduct from "./pages/AddProduct";
+import AddProduct from "./pages/AddEditProduct";
+import AddEditProduct from "./pages/AddEditProduct";
+import ProductDetails from "./pages/ProductDetails";
+import Wishlist from "./pages/Wishlist";
+import MyListings from "./pages/MyListings";
 
 
 const App = () => {
@@ -26,8 +30,12 @@ const App = () => {
         <Route path="/questions/:questionId" element={<QuestionDetail />} />
         <Route path="/room" element={<Room />} />
         <Route path="/room/:roomId" element={<StudyRoom />} />
-        <Route path="/marketplace" element={<Marketplace user={user} />} />
-        <Route path="/add-product" element={<AddProduct />} />
+        <Route path="/marketplace" element={<Marketplace />} />
+        <Route path="/marketplace/:id" element={<ProductDetails />} />
+        <Route path="/marketplace/add" element={<AddEditProduct />} />
+        <Route path="/marketplace/edit/:id" element={<AddEditProduct />} />
+        <Route path="/marketplace/wishlist" element={<Wishlist />} />
+        <Route path="/marketplace/listings" element={<MyListings />} />
       </Routes>
     </Router>
   );

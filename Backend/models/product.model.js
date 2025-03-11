@@ -5,6 +5,7 @@ const productSchema = new mongoose.Schema({
   description: { type: String },
   price: { type: Number, required: true },
   category: { type: String, required: true },
+  sold : { type: Boolean, default: false },
   images: [{ type: String }],
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
