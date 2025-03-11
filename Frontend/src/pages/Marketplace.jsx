@@ -1,16 +1,19 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
+import { useSelector } from "react-redux";
 
 const Marketplace = () => {
+  const user = useSelector((state) => state.auth.user);
+  const userId = user?._id;
   const [products, setProducts] = useState([]);
-  const [wishlist, setWishlist] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("");
   const [categories, setCategories] = useState([]);
 
+  // Fetch products
   useEffect(() => {
     const fetchProducts = async () => {
       try {
@@ -43,10 +46,22 @@ const Marketplace = () => {
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-semibold">Marketplace</h2>
         <div className="flex space-x-4">
-          <Link to="/marketplace/wishlist" className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg">
+          <Link
+            to="/chat/inbox"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+          >
+            📩 Messages
+          </Link>
+          <Link
+            to="/marketplace/wishlist"
+            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+          >
             ❤️ Wishlist
           </Link>
-          <Link to="/marketplace/add" className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg">
+          <Link
+            to="/marketplace/add"
+            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+          >
             ➕ Add Product
           </Link>
         </div>
@@ -67,7 +82,9 @@ const Marketplace = () => {
         >
           <option value="">All Categories</option>
           {categories.map((cat) => (
-            <option key={cat} value={cat}>{cat}</option>
+            <option key={cat} value={cat}>
+              {cat}
+            </option>
           ))}
         </select>
         <select
@@ -89,9 +106,16 @@ const Marketplace = () => {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
-            <div key={product._id} className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform">
+            <div
+              key={product._id}
+              className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform"
+            >
               <Link to={`/marketplace/${product._id}`} className="block">
-                <img src={product.images[0]} alt={product.title} className="w-full h-48 object-cover rounded-lg" />
+                <img
+                  src={product.images[0]}
+                  alt={product.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
                 <h3 className="text-xl font-medium mt-3">{product.title}</h3>
                 <p className="text-green-400 text-lg font-semibold">₹{product.price}</p>
               </Link>

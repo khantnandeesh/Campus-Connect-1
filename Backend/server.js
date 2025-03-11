@@ -10,6 +10,7 @@ import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import marketplaceRoutes from "./routes/marketplace.routes.js";
+import chatRoutes from "./routes/chat.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
@@ -22,6 +23,7 @@ const io = new Server(server, {
   cors: {
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    credentials: true,
   },
 });
 
@@ -170,9 +172,29 @@ io.on("connection", (socket) => {
       console.error("Mode toggle error:", err);
     }
   });
+};
 
+  // Chat Events for direct messaging between buyer and seller
+ const handleChatEvents = () => {
+  socket.on("joinChat", ({ buyerId, sellerId }) => {
+    // Create a consistent room name by sorting the IDs
+    const chatRoom = [buyerId, sellerId].sort().join("-");
+    socket.join(chatRoom);
+    console.log(`User joined chat: ${chatRoom}`);
+  });
 
-  };
+  socket.on("join", (userId) => {
+    socket.join(userId); // User joins their own room (userId)
+    console.log(`User ${userId} joined their personal room`);
+  });
+
+  socket.on("sendMessage", (message) => {
+    const { senderId, receiverId } = message;
+    // Use the same room naming strategy
+    const chatRoom = [senderId, receiverId].sort().join("-");
+    io.to(chatRoom).emit("receiveMessage", message);
+  });
+};
 
   // Question/Answer Events (existing functionality)
   const handleQnAEvents = () => {
@@ -202,6 +224,8 @@ io.on("connection", (socket) => {
 
   handleStudyRoomEvents();
   handleQnAEvents();
+  handleChatEvents();
+
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
@@ -219,6 +243,7 @@ app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/chat", chatRoutes);
 
 // Start Server
 const PORT = process.env.PORT || 5000;
