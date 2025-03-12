@@ -93,6 +93,12 @@ const Marketplace = () => {
           >
             ➕ Add Product
           </Link>
+          <Link
+            to="/marketplace/listings"
+            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"
+          >
+            📦 My Listings
+          </Link>
         </div>
       </div>
 
