@@ -9,9 +9,10 @@ const chatSchema = new mongoose.Schema(
         senderId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
         text: { type: String, required: true },
         timestamp: { type: Date, default: Date.now },
-        read: { type: Boolean, default: false },
       },
     ],
+    buyerLastRead: { type: Date, default: null },
+    sellerLastRead: { type: Date, default: null },
   },
   { timestamps: true }
 );

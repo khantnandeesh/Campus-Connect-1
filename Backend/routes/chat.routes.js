@@ -1,38 +1,35 @@
 import express from "express";
+import mongoose from "mongoose";
 import Chat from "../models/chat.model.js";
 import protectRoute from "../middlewares/protectRoute.js";
 
 const router = express.Router();
 
-// Fetch the user's chat inbox (all chats involving the user)
+// Fetch chat inbox for the logged-in user with unread count calculation
 router.get("/inbox", protectRoute, async (req, res) => {
   try {
     const userId = req.user?._id;
     if (!userId) return res.status(400).json({ error: "User ID required" });
 
-    // Find all chats where the user is either buyer or seller
     const chats = await Chat.find({
       $or: [{ buyerId: userId }, { sellerId: userId }],
     })
       .populate("buyerId", "username")
       .populate("sellerId", "username")
-      .populate({
-        path: "messages",
-        select: "text senderId read",
-        options: { sort: { createdAt: -1 }, limit: 1 }, // Get the latest message
-      })
       .sort({ updatedAt: -1 });
 
-    // Format response
+    // For each chat, compute last message and unread count based on last read timestamp.
     const chatSummaries = chats.map((chat) => {
-      const lastMessage =
-        chat.messages.length > 0 ? chat.messages[0].text : "No messages yet";
-
-      // Count unread messages for the logged-in user
-      const unreadCount = chat.messages.filter(
-        (msg) => msg.senderId.toString() !== userId && !msg.read
-      ).length;
-
+      const lastMessageObj = chat.messages[chat.messages.length - 1];
+      const lastMessage = lastMessageObj ? lastMessageObj.text : "No messages yet";
+      let unreadCount = 0;
+      if (chat.buyerId._id.toString() === userId.toString()) {
+        const lastRead = chat.buyerLastRead || new Date(0);
+        unreadCount = chat.messages.filter((msg) => msg.timestamp > lastRead).length;
+      } else if (chat.sellerId._id.toString() === userId.toString()) {
+        const lastRead = chat.sellerLastRead || new Date(0);
+        unreadCount = chat.messages.filter((msg) => msg.timestamp > lastRead).length;
+      }
       return {
         _id: chat._id,
         buyerId: chat.buyerId._id.toString(),
@@ -51,15 +48,13 @@ router.get("/inbox", protectRoute, async (req, res) => {
   }
 });
 
-// Fetch or create a chat between the user and a seller
-// Endpoint: GET /api/chat/:sellerId
+// Get (or create) a chat between the logged-in user and a seller
 router.get("/:sellerId", protectRoute, async (req, res) => {
   try {
     const { sellerId } = req.params;
     const userId = req.user?._id;
     if (!userId) return res.status(401).json({ error: "Unauthorized" });
 
-    // Find the chat between buyer and seller (in either order)
     let chat = await Chat.findOne({
       $or: [
         { buyerId: userId, sellerId: sellerId },
@@ -67,24 +62,24 @@ router.get("/:sellerId", protectRoute, async (req, res) => {
       ],
     });
 
-    // If no chat exists, create a new one
     if (!chat) {
       chat = new Chat({
         buyerId: userId,
-        sellerId: sellerId,
+        sellerId,
         messages: [],
+        buyerLastRead: new Date(), // Buyer reading at creation time
+        sellerLastRead: null,
       });
       await chat.save();
     }
-
     res.json(chat);
   } catch (error) {
     console.error("Error fetching chat:", error);
-    res.status(500).json({ error: "Server error" });
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Send a new message
+// Send a new message in a conversation
 router.post("/send", protectRoute, async (req, res) => {
   try {
     const { chatId, senderId, receiverId, text } = req.body;
@@ -92,58 +87,52 @@ router.post("/send", protectRoute, async (req, res) => {
       return res.status(400).json({ error: "All fields are required" });
     }
 
-    // Create new message
-    const message = { senderId, text, read: false };
-    const chat = await Chat.findByIdAndUpdate(
-      chatId,
-      { $push: { messages: message }, updatedAt: Date.now() },
-      { new: true }
-    );
-
+    let chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
 
-    // Emit event to notify receiver
-    req.io.to(receiverId).emit("newMessage", { chatId, senderId, text });
+    const newMessage = {
+      senderId,
+      text,
+      timestamp: new Date(),
+    };
 
-    res.json({ success: true, message });
+    chat.messages.push(newMessage);
+    await chat.save();
+
+    // Emit event to notify the receiver (sender's room should be managed via socket connection)
+    req.io.to(receiverId.toString()).emit("newMessage", { chatId, senderId, text });
+
+    res.status(201).json(newMessage);
   } catch (error) {
     console.error("Error sending message:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Mark a message as read
+// Mark the conversation as read for the logged-in user
 router.put("/mark-read", protectRoute, async (req, res) => {
   try {
-    const { chatId, messageId } = req.body;
+    const { chatId } = req.body;
     const userId = req.user?._id;
-    if (!chatId || !messageId || !userId) {
-      return res.status(400).json({ error: "Chat ID, Message ID, and User ID are required" });
+    if (!chatId || !userId) {
+      return res.status(400).json({ error: "Chat ID and User ID are required" });
     }
 
-    // Find the chat by chatId
     const chat = await Chat.findById(chatId);
     if (!chat) return res.status(404).json({ error: "Chat not found" });
 
-    // Find the message by messageId
-    const message = chat.messages.id(messageId);
-    if (!message) return res.status(404).json({ error: "Message not found" });
-
-    // Ensure the logged-in user is the receiver of the message (not the sender)
-    if (message.senderId.toString() === userId.toString()) {
-      return res.status(400).json({ error: "Sender cannot mark the message as read" });
+    if (chat.buyerId.toString() === userId.toString()) {
+      chat.buyerLastRead = new Date();
+    } else if (chat.sellerId.toString() === userId.toString()) {
+      chat.sellerLastRead = new Date();
+    } else {
+      return res.status(400).json({ error: "User is not a participant in this chat" });
     }
 
-    // Mark the message as read
-    message.read = true;
     await chat.save();
-
-    // Emit event to notify the sender (optional)
-    req.io.to(message.senderId.toString()).emit("messageRead", { chatId, messageId });
-
-    res.json({ success: true, message });
+    res.json({ success: true, chat });
   } catch (error) {
-    console.error("Error marking message as read:", error);
+    console.error("Error marking chat as read:", error);
     res.status(500).json({ error: "Internal server error" });
   }
 });

@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
@@ -8,6 +8,7 @@ const SERVER_URL = "http://localhost:3000";
 
 const SellerChatPage = () => {
   const { sellerId } = useParams();
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const userId = user?._id;
 
@@ -19,7 +20,7 @@ const SellerChatPage = () => {
   const socket = useRef(null);
   const messagesEndRef = useRef(null);
 
-  // Fetching chat or creating a new one
+  // Fetch chat (or create new one) and setup socket
   useEffect(() => {
     if (!userId) return;
 
@@ -28,29 +29,24 @@ const SellerChatPage = () => {
       return;
     }
 
-    // Connect socket with credentials
+    // Connect to socket with credentials
     socket.current = io(SERVER_URL, { withCredentials: true });
-
-    // Join the chat room based on the buyer and seller IDs
     socket.current.emit("joinChat", { buyerId: userId, sellerId });
 
-    // Listen for incoming messages
     socket.current.on("receiveMessage", (message) => {
       setMessages((prevMessages) => [...prevMessages, message]);
     });
 
-    // Fetch the chat or create it if it doesn't exist
+    // Fetch chat from backend
     const fetchChat = async () => {
       try {
         const response = await axios.get(`${SERVER_URL}/api/chat/${sellerId}`, {
           withCredentials: true,
         });
-
         if (response.data && response.data._id) {
           setChat(response.data);
           setMessages(response.data.messages);
         } else {
-          // Handle case if chat is not found
           setChat(null);
           setMessages([]);
         }
@@ -67,6 +63,24 @@ const SellerChatPage = () => {
     };
   }, [userId, sellerId]);
 
+  // Mark the conversation as read when chat is loaded or messages change
+  useEffect(() => {
+    if (chat && chat._id && userId) {
+      axios
+        .put(
+          `${SERVER_URL}/api/chat/mark-read`,
+          { chatId: chat._id },
+          { withCredentials: true }
+        )
+        .then(() => {
+          console.log("Chat marked as read");
+        })
+        .catch((error) => {
+          console.error("Error marking chat as read:", error);
+        });
+    }
+  }, [chat, userId, messages]);
+
   const sendMessage = async () => {
     if (!newMessage.trim() || !userId || userId === sellerId) {
       setError("Invalid message or you cannot chat with yourself.");
@@ -74,26 +88,22 @@ const SellerChatPage = () => {
     }
     setError("");
 
-    // Ensure we have a valid chat before sending
     if (!chat || !chat._id) {
       setError("Chat not found. Please try again later.");
       return;
     }
 
     const messageData = {
-      chatId: chat._id, // Include chatId as required by the backend
+      chatId: chat._id,
       senderId: userId,
       receiverId: sellerId,
       text: newMessage,
     };
 
     try {
-      // Send the message using the backend route
       await axios.post(`${SERVER_URL}/api/chat/send`, messageData, {
         withCredentials: true,
       });
-
-      // Emit the new message to the receiver through the socket
       socket.current.emit("sendMessage", messageData);
       setNewMessage("");
     } catch (err) {
@@ -102,7 +112,7 @@ const SellerChatPage = () => {
     }
   };
 
-  // Scroll to the bottom whenever messages change
+  // Auto-scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -110,7 +120,7 @@ const SellerChatPage = () => {
   return (
     <div className="flex flex-col h-screen bg-gray-900 text-white">
       {/* Header */}
-      <div className="bg-gray-800 text-white p-4 text-lg font-semibold flex items-center justify-center shadow-md">
+      <div className="bg-gray-800 p-4 text-lg font-semibold flex items-center justify-center shadow-md">
         Chat with Seller
       </div>
 
@@ -122,11 +132,11 @@ const SellerChatPage = () => {
           messages.map((msg, index) => (
             <div
               key={index}
-              className={`flex ${msg.senderId === userId ? "justify-end" : "justify-start"}`}
+              className={`flex ${msg.senderId.toString() === userId.toString() ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`p-3 rounded-xl max-w-[75%] shadow-md text-white ${
-                  msg.senderId === userId ? "bg-blue-600" : "bg-gray-700"
+                  msg.senderId.toString() === userId.toString() ? "bg-blue-600" : "bg-gray-700"
                 }`}
               >
                 {msg.text}

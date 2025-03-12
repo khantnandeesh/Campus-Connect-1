@@ -12,6 +12,7 @@ const Marketplace = () => {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("");
   const [categories, setCategories] = useState([]);
+  const [unreadCount, setUnreadCount] = useState(0);
 
   // Fetch products
   useEffect(() => {
@@ -31,6 +32,28 @@ const Marketplace = () => {
     fetchProducts();
   }, []);
 
+  // Fetch total unread messages from chat inbox
+  useEffect(() => {
+    if (!userId) return;
+    const fetchUnreadCount = async () => {
+      try {
+        const response = await axios.get(`http://localhost:3000/api/chat/inbox?userId=${userId}`, {
+          withCredentials: true,
+        });
+        // Sum up unread counts from each chat
+        const totalUnread = response.data.reduce(
+          (acc, chat) => acc + (chat.unreadCount || 0),
+          0
+        );
+        setUnreadCount(totalUnread);
+      } catch (error) {
+        console.error("Error fetching unread messages:", error);
+      }
+    };
+
+    fetchUnreadCount();
+  }, [userId]);
+
   const filteredProducts = products
     .filter((product) => product.title.toLowerCase().includes(search.toLowerCase()))
     .filter((product) => (category ? product.category === category : true))
@@ -43,14 +66,20 @@ const Marketplace = () => {
 
   return (
     <div className="p-6 bg-gray-900 min-h-screen text-white">
+      {/* Header */}
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-3xl font-semibold">Marketplace</h2>
         <div className="flex space-x-4">
           <Link
             to="/chat/inbox"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+            className="relative bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
           >
             📩 Messages
+            {unreadCount > 0 && (
+              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-600 rounded-full">
+                {unreadCount}
+              </span>
+            )}
           </Link>
           <Link
             to="/marketplace/wishlist"
@@ -67,6 +96,7 @@ const Marketplace = () => {
         </div>
       </div>
 
+      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <input
           type="text"
@@ -99,6 +129,7 @@ const Marketplace = () => {
         </select>
       </div>
 
+      {/* Products List */}
       {loading ? (
         <p className="text-center text-gray-400">Loading products...</p>
       ) : filteredProducts.length === 0 ? (
@@ -111,11 +142,7 @@ const Marketplace = () => {
               className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform"
             >
               <Link to={`/marketplace/${product._id}`} className="block">
-                <img
-                  src={product.images[0]}
-                  alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg"
-                />
+                <img src={product.images[0]} alt={product.title} className="w-full h-48 object-cover rounded-lg" />
                 <h3 className="text-xl font-medium mt-3">{product.title}</h3>
                 <p className="text-green-400 text-lg font-semibold">₹{product.price}</p>
               </Link>
