@@ -255,11 +255,11 @@ const Header = () => {
         className="p-2 hover:bg-gray-400 cursor-pointer block text-white"
         onClick={() => {
           console.log("Profile clicked, user:", user);
-          if (!user?.id) {
+          if (!user?._id) {
             console.error("User ID not available");
             return;
           }
-          navigateTo(`/userProfile/${user.id}`);
+          navigateTo(`/userProfile/${user._id}`);
           // handleMenuClose();
         }}
       >
@@ -338,8 +338,8 @@ const Header = () => {
                 </Link>
               </li>
               <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/message" className="nav-link">
-                  Chat
+                <Link to="/chats" className="nav-link">
+                  Chats
                 </Link>
               </li>
             </ul>

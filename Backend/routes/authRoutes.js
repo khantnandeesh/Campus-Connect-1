@@ -244,9 +244,13 @@ router.post("/api/auth/logout", (req, res) => {
 
 router.get("/dashboard", authenticateUser, async (req, res) => {
   try {
-    res
-      .status(200)
-      .json({ message: "Welcome to the dashboard", user: req.user });
+    const user = await User.findById(req.user.id).select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    res.status(200).json({ message: "Welcome to the dashboard", user });
   } catch (error) {
     res.status(500).json({ message: "Error loading dashboard", error });
   }

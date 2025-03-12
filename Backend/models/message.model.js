@@ -7,7 +7,7 @@ const messageSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    content: { type: String, required: true },
+    content: { type: String, default: "" }, // updated: allow empty content
     mediaUrl: { type: String }, // Cloudinary URL for multimedia
     group: { type: mongoose.Schema.Types.ObjectId, ref: "Group" }, // If message is part of a group
     chat: { type: mongoose.Schema.Types.ObjectId, ref: "Chat" }, // If message is in private chat

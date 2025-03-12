@@ -1,4 +1,5 @@
 import express from "express";
+// import helmet from "helmet"; // Added for security headers
 import bodyParser from "body-parser";
 import cors from "cors";
 import connectDB from "./config/db.js";
@@ -11,6 +12,7 @@ import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
+import chatRoutes from "./routes/chat.routes.js"; // Import chat routes
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
@@ -29,8 +31,12 @@ const io = new Server(server, {
   },
 });
 
+// // Security middleware
+// app.use(helmet());
+
 // Add timer management
 const activeTimers = new Map(); // Track active timers per room
+const users = new Map(); // Track online users
 
 // Middleware
 app.use(cookieParser());
@@ -43,6 +49,9 @@ app.use(
   })
 );
 
+// Make io available throughout the app
+app.set("io", io);
+
 // Inject io into requests
 app.use((req, res, next) => {
   req.io = io;
@@ -51,7 +60,22 @@ app.use((req, res, next) => {
 
 // Socket.io Events
 io.on("connection", (socket) => {
-  console.log("User connected:", socket.id);
+  // console.log("User connected:", socket.id);
+
+  // Handle user online status
+  socket.on("user-online", (userId) => {
+    console.log("User online:", userId);
+    users.set(userId, socket.id);
+    socket.userId = userId; // Store userId in socket object
+    io.emit("online-users", Array.from(users.keys()));
+  });
+
+  socket.on("disconnect", () => {
+    if (socket.userId) {
+      users.delete(socket.userId);
+      io.emit("online-users", Array.from(users.keys()));
+    }
+  });
 
   // Study Room Events
   const handleStudyRoomEvents = () => {
@@ -186,72 +210,39 @@ io.on("connection", (socket) => {
     // Join personal chat rooms
     socket.on("joinChat", (chatId) => {
       socket.join(chatId);
-      console.log(`User joined chat: ${chatId}`);
+      console.log(`User ${socket.userId} joined chat: ${chatId}`);
     });
 
     // Handle personal chat messages
-    socket.on("sendMessage", async ({ chatId, sender, content }) => {
-      const message = new Message({ sender, content, chat: chatId });
-      await message.save();
-
-      await Chat.findByIdAndUpdate(chatId, {
-        $push: { messages: message._id },
-      });
-
-      io.to(chatId).emit("newMessage", message); // Send to all in the chat
-    });
-
-    // Join group chat rooms
-    socket.on("joinGroup", (groupId) => {
-      socket.join(groupId);
-      console.log(`User joined group: ${groupId}`);
-    });
-
-    // Handle group messages
-    socket.on("sendGroupMessage", async ({ groupId, sender, content }) => {
-      const message = new Message({ sender, content, group: groupId });
-      await message.save();
-
-      await Group.findByIdAndUpdate(groupId, {
-        $push: { messages: message._id },
-      });
-
-      io.to(groupId).emit("newGroupMessage", message); // Broadcast to group members
-    });
-
-    // Handle pinned messages in groups
-    socket.on("pinMessage", async ({ groupId, messageId }) => {
-      await Group.findByIdAndUpdate(groupId, {
-        $push: { pinnedMessages: messageId },
-      });
-      io.to(groupId).emit("messagePinned", messageId);
-    });
-
-    // Handle group announcements (can be global or private)
-    socket.on("postAnnouncement", async ({ groupId, content, isGlobal }) => {
-      const message = new Message({ content, group: groupId, isGlobal });
-      await message.save();
-
-      if (isGlobal) {
-        io.emit("globalAnnouncement", message); // Send to all users
-      } else {
-        io.to(groupId).emit("groupAnnouncement", message); // Send to group members only
+    socket.on("sendMessage", async ({ chatId, message }) => {
+      try {
+        // Broadcast the message to all users in the chat room except sender
+        socket.to(chatId).emit("newMessage", {
+          _id: message._id,
+          sender: message.sender,
+          content: message.content,
+          mediaUrl: message.mediaUrl,
+          createdAt: message.createdAt,
+          chat: chatId,
+        });
+      } catch (error) {
+        console.error("Error broadcasting message:", error);
       }
     });
 
-    // Handle poll voting updates
-    socket.on("votePoll", async ({ pollId, optionIndex }) => {
-      io.emit("pollUpdated", { pollId, optionIndex }); // Broadcast poll update
+    // Leave chat room when user switches chat
+    socket.on("leaveChat", (chatId) => {
+      socket.leave(chatId);
+      console.log(`User ${socket.userId} left chat: ${chatId}`);
     });
-    // socket.on("user-online", (userId) => {
-    //   users.set(userId, socket.id);
-    // });
 
-    socket.on("send-notification", ({ recipientId, message }) => {
-      const recipientSocket = users.get(recipientId);
-      if (recipientSocket) {
-        io.to(recipientSocket).emit("receive-notification", message);
-      }
+    // Handle typing status
+    socket.on("typing", ({ chatId, userId }) => {
+      socket.to(chatId).emit("userTyping", userId);
+    });
+
+    socket.on("stopTyping", ({ chatId, userId }) => {
+      socket.to(chatId).emit("userStoppedTyping", userId);
     });
   };
 
@@ -276,6 +267,7 @@ app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/upload", uploadRoutes);
+app.use("/api/chats", chatRoutes); // Add chat routes
 
 // Start Server
 const PORT = process.env.PORT || 5000;

@@ -10,6 +10,7 @@ import StudyRoom from "./pages/StudyRoom";
 import UserProfile from "./pages/UserProfile"; // Import the new component
 import Profile from "./pages/Profile";
 import Layout from "./pages/Layout"; // Import the Layout component
+import ChatPage from "./pages/ChatPage";
 
 const App = () => {
   return (
@@ -25,6 +26,7 @@ const App = () => {
           <Route path="/room/:roomId" element={<StudyRoom />} />
           <Route path="/userProfile/:userId" element={<Profile />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
+          <Route path="/chats" element={<ChatPage />} />
         </Route>
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />

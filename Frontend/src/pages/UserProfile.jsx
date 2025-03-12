@@ -20,7 +20,7 @@ const UserProfile = () => {
         console.log(response);
         setUser(response);
         const currentUser = JSON.parse(localStorage.getItem("user"));
-        const currentUserId = currentUser.id;
+        const currentUserId = currentUser._id;
         setIsFriend(
           response.friends.some((friend) => friend._id === currentUserId)
         );

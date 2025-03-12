@@ -269,7 +269,7 @@ const Profile = () => {
               </div>
 
               {/* Edit Profile Button */}
-              {isOwnProfile && !editMode && (
+              {!editMode && (
                 <div className="text-center mt-6">
                   <button
                     onClick={() => setEditMode(true)}
