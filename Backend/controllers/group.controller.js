@@ -4,6 +4,7 @@ import GroupRequest from "../models/groupRequest.model.js";
 import User from "../models/user.model.js";
 import cloudinary from "../config/cloudinary.js"; // Ensure Cloudinary is imported
 import multer from "multer";
+import Poll from "../models/poll.model.js";
 // Set up multer for handling file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -165,15 +166,70 @@ export const pinMessage = async (req, res) => {
   try {
     const { groupId } = req.params;
     const { messageId } = req.body;
-    const group = await Group.findById(groupId);
+    const userId = req.user.id;
 
+    const group = await Group.findById(groupId);
     if (!group) return res.status(404).json({ message: "Group not found" });
+    if (!group.admins.includes(userId))
+      return res.status(403).json({ message: "Only admins can pin messages" });
+
+    if (group.pinnedMessages.includes(messageId))
+      return res.status(400).json({ message: "Message already pinned" });
 
     group.pinnedMessages.push(messageId);
     await group.save();
-    res.json({ message: "Message pinned successfully" });
+
+    const pinnedMessage = await Message.findById(messageId).populate(
+      "sender",
+      "username avatar"
+    );
+    req.io
+      .to(groupId)
+      .emit("messagePinned", { messageId, message: pinnedMessage });
+
+    res.json({ message: "Message pinned successfully", pinnedMessage });
   } catch (error) {
     res.status(500).json({ message: "Error pinning message", error });
+  }
+};
+
+export const unpinMessage = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { messageId } = req.body;
+    const userId = req.user.id;
+
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (!group.admins.includes(userId))
+      return res
+        .status(403)
+        .json({ message: "Only admins can unpin messages" });
+
+    group.pinnedMessages = group.pinnedMessages.filter(
+      (id) => id.toString() !== messageId
+    );
+    await group.save();
+
+    req.io.to(groupId).emit("messageUnpinned", messageId);
+    res.json({ message: "Message unpinned successfully" });
+  } catch (error) {
+    res.status(500).json({ message: "Error unpinning message", error });
+  }
+};
+
+export const getPinnedMessages = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const group = await Group.findById(groupId).populate({
+      path: "pinnedMessages",
+      populate: { path: "sender", select: "username avatar" },
+    });
+
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    res.json(group.pinnedMessages);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching pinned messages", error });
   }
 };
 
@@ -462,7 +518,10 @@ export const getGroupChats = async (req, res) => {
     const { groupId } = req.params;
     const group = await Group.findById(groupId).populate({
       path: "messages",
-      populate: { path: "sender", select: "username avatar" },
+      populate: [
+        { path: "sender", select: "username avatar" },
+        { path: "poll", model: "Poll" }, // Add this to populate poll data
+      ],
     });
     if (!group) return res.status(404).json({ message: "Group not found" });
     res.json(group.messages);
@@ -649,5 +708,90 @@ export const joinGroup = async (req, res) => {
     res
       .status(500)
       .json({ message: "Error joining group", error: error.message });
+  }
+};
+
+// Poll Controllers
+export const createPoll = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const { question, options, duration } = req.body;
+    const userId = req.user.id;
+
+    const poll = new Poll({
+      question,
+      options: options.map((text) => ({ text, votes: 0 })),
+      createdBy: userId,
+      group: groupId,
+      voters: [],
+      expiresAt: duration
+        ? new Date(Date.now() + duration * 24 * 60 * 60 * 1000)
+        : null,
+    });
+    await poll.save();
+
+    const message = new Message({
+      sender: userId,
+      group: groupId,
+      poll: poll._id,
+      type: "poll",
+    });
+    await message.save();
+
+    const group = await Group.findById(groupId);
+    group.messages.push(message._id);
+    await group.save();
+
+    // Populate all necessary data before emitting
+    const populatedMessage = await Message.findById(message._id)
+      .populate("sender", "username avatar")
+      .populate("poll");
+
+    req.io.to(groupId).emit("newGroupMessage", populatedMessage);
+    res.status(201).json(populatedMessage);
+  } catch (error) {
+    console.error("Error creating poll:", error);
+    res.status(500).json({ message: "Error creating poll", error });
+  }
+};
+
+export const votePoll = async (req, res) => {
+  try {
+    const { pollId } = req.params;
+    const { optionIndex } = req.body;
+    const userId = req.user.id;
+
+    const poll = await Poll.findById(pollId);
+    if (!poll) return res.status(404).json({ message: "Poll not found" });
+
+    // Check if poll has expired
+    if (poll.expiresAt && new Date() > new Date(poll.expiresAt))
+      return res.status(400).json({ message: "Poll has expired" });
+
+    // Check if user has already voted
+    if (poll.voters.includes(userId))
+      return res.status(400).json({ message: "Already voted" });
+
+    // Update vote count and add user to voters
+    poll.options[optionIndex].votes += 1;
+    poll.voters.push(userId);
+    await poll.save();
+
+    req.io.to(poll.group.toString()).emit("pollUpdated", poll);
+    res.json(poll);
+  } catch (error) {
+    res.status(500).json({ message: "Error voting in poll", error });
+  }
+};
+
+export const getGroupPolls = async (req, res) => {
+  try {
+    const { groupId } = req.params;
+    const polls = await Poll.find({ group: groupId })
+      .populate("createdBy", "username avatar")
+      .sort("-createdAt");
+    res.json(polls);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching polls", error });
   }
 };

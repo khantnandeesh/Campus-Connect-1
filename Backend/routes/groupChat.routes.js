@@ -23,6 +23,11 @@ import {
   editGroupDetails, // new: edit group details
   updateGroupAvatar, // new: update group avatar
   joinGroup,
+  unpinMessage, // new: unpin message
+  getPinnedMessages, // new: get pinned messages
+  createPoll, // new: create poll
+  votePoll, // new: vote poll
+  getGroupPolls, // new: get group polls
 } from "../controllers/group.controller.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
@@ -73,5 +78,15 @@ router.post(
   sendGroupImage
 ); // Send image in group chat
 router.delete("/message/:groupId/:messageId", protectRoute, deleteGroupMessage); // Delete group message
+
+// Pinned Messages Routes
+router.post("/pin/:groupId", protectRoute, pinMessage);
+router.post("/unpin/:groupId", protectRoute, unpinMessage);
+router.get("/pinned/:groupId", protectRoute, getPinnedMessages);
+
+// Poll Routes
+router.post("/poll/:groupId", protectRoute, createPoll);
+router.post("/poll/vote/:pollId", protectRoute, votePoll);
+router.get("/polls/:groupId", protectRoute, getGroupPolls);
 
 export default router;

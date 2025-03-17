@@ -102,6 +102,28 @@ export const pinMessage = async (groupId, messageId) => {
   }
 };
 
+export const unpinMessage = async (groupId, messageId) => {
+  try {
+    const response = await apiClient.post(`/groups/unpin/${groupId}`, {
+      messageId,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error unpinning message:", error);
+    throw error;
+  }
+};
+
+export const getPinnedMessages = async (groupId) => {
+  try {
+    const response = await apiClient.get(`/groups/pinned/${groupId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching pinned messages:", error);
+    throw error;
+  }
+};
+
 export const deleteGroup = async (groupId) => {
   try {
     const response = await apiClient.delete(`/groups/${groupId}`);
@@ -287,6 +309,39 @@ export const joinGroup = async (groupId) => {
   }
 };
 
+// Poll Functions
+export const createPoll = async (groupId, pollData) => {
+  try {
+    const response = await apiClient.post(`/groups/poll/${groupId}`, pollData);
+    return response.data;
+  } catch (error) {
+    console.error("Error creating poll:", error);
+    throw error;
+  }
+};
+
+export const votePoll = async (pollId, optionIndex) => {
+  try {
+    const response = await apiClient.post(`/groups/poll/vote/${pollId}`, {
+      optionIndex,
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error voting in poll:", error);
+    throw error;
+  }
+};
+
+export const getGroupPolls = async (groupId) => {
+  try {
+    const response = await apiClient.get(`/groups/polls/${groupId}`);
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching polls:", error);
+    throw error;
+  }
+};
+
 // Socket Client-Side Code
 export const joinGroupRoom = (groupId) => {
   // Updated to emit the correct event for group chats
@@ -303,9 +358,37 @@ export const sendMessage = (groupId, message) => {
 };
 
 export const onNewGroupMessage = (callback) => {
-  socket.on("newGroupMessage", callback);
+  socket.on("newGroupMessage", (message) => {
+    // Transform poll message if needed
+    if (message.poll) {
+      message.type = "poll"; // Add type for easier handling in UI
+    }
+    callback(message);
+  });
 };
 
 export const onDeleteGroupMessage = (callback) => {
   socket.on("deleteGroupMessage", callback);
+};
+
+// Poll Socket Event Handlers
+export const onNewPoll = (callback) => {
+  socket.on("newPoll", callback);
+};
+
+export const onPollUpdated = (callback) => {
+  socket.on("pollUpdated", callback);
+};
+
+export const onPollExpired = (callback) => {
+  socket.on("pollExpired", callback);
+};
+
+// Poll Socket Emitters
+export const emitCreatePoll = (groupId, pollData) => {
+  socket.emit("createPoll", { groupId, pollData });
+};
+
+export const emitVotePoll = (pollId, optionIndex) => {
+  socket.emit("votePoll", { pollId, optionIndex });
 };
