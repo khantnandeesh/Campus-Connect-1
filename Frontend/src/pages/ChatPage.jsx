@@ -4,9 +4,11 @@ import Sidebar from "../components/chatComponents/Sidebar";
 import NoChatSelected from "../components/chatComponents/NoChatSelected";
 import ChatContainer from "../components/chatComponents/ChatContainer";
 import { getUserChats, getOnlineFriends } from "../utils/personalChatService";
+import { getGroupChats, socket as groupSocket } from "../utils/groupService";
 
 const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedGroup, setSelectedGroup] = useState(null); // State for selected group
   const [messages, setMessages] = useState([]);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
@@ -17,7 +19,13 @@ const ChatPage = () => {
 
   useEffect(() => {
     socket.on("newMessage", (newMessage) => {
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      // Check if the new message is already in the state to avoid duplication
+      setMessages((prevMessages) => {
+        if (!prevMessages.some((msg) => msg._id === newMessage._id)) {
+          return [...prevMessages, newMessage];
+        }
+        return prevMessages;
+      });
     });
 
     socket.on("deleteMessage", (messageId) => {
@@ -54,6 +62,21 @@ const ChatPage = () => {
   }, [selectedUser]);
 
   useEffect(() => {
+    if (selectedGroup) {
+      setIsMessagesLoading(true);
+      console.log(selectedGroup);
+
+      getGroupChats(selectedGroup._id)
+        .then((groupMessages) => {
+          groupSocket.emit("joinGroupRoom", selectedGroup._id); // Use group socket
+          setMessages(groupMessages);
+          setIsMessagesLoading(false);
+        })
+        .catch(() => setIsMessagesLoading(false));
+    }
+  }, [selectedGroup]);
+
+  useEffect(() => {
     getOnlineFriends().then(setOnlineUsers);
   }, []);
 
@@ -65,15 +88,19 @@ const ChatPage = () => {
             <Sidebar
               selectedUser={selectedUser}
               setSelectedUser={setSelectedUser}
+              selectedGroup={selectedGroup} // Pass selectedGroup to Sidebar
+              setSelectedGroup={setSelectedGroup} // Pass setSelectedGroup to Sidebar
               onlineUsers={onlineUsers}
               setOnlineUsers={setOnlineUsers}
             />
-            {!selectedUser ? (
+            {!selectedUser && !selectedGroup ? (
               <NoChatSelected />
             ) : (
               <ChatContainer
                 setSelectedUser={setSelectedUser}
                 selectedUser={selectedUser}
+                setSelectedGroup={setSelectedGroup} // Pass setSelectedGroup to ChatContainer
+                selectedGroup={selectedGroup} // Pass selectedGroup to ChatContainer
                 messages={messages}
                 setMessages={setMessages}
                 isMessagesLoading={isMessagesLoading}

@@ -19,6 +19,8 @@ import StudyRoom from "./models/room.model.js";
 import Chat from "./models/chat.model.js";
 import Message from "./models/message.model.js";
 import Group from "./models/group.model.js";
+import groupRoutes from "./routes/groupChat.routes.js";
+import cloudinary from "./config/cloudinary.js"; // Ensure Cloudinary is imported
 dotenv.config();
 
 const app = express();
@@ -49,12 +51,14 @@ app.use(
   })
 );
 
-// Make io available throughout the app
+// Make io and cloudinary available throughout the app
 app.set("io", io);
+app.set("cloudinary", cloudinary); // Add this line
 
-// Inject io into requests
+// Inject io and cloudinary into requests
 app.use((req, res, next) => {
   req.io = io;
+  req.cloudinary = cloudinary; // Add this line
   next();
 });
 
@@ -64,7 +68,6 @@ io.on("connection", (socket) => {
 
   // Handle user online status
   socket.on("user-online", (userId) => {
-    console.log("User online:", userId);
     users.set(userId, socket.id);
     socket.userId = userId; // Store userId in socket object
     io.emit("online-users", Array.from(users.keys()));
@@ -210,7 +213,13 @@ io.on("connection", (socket) => {
     // Join personal chat rooms
     socket.on("joinChat", (chatId) => {
       socket.join(chatId);
-      console.log(`User ${socket.userId} joined chat: ${chatId}`);
+      // console.log(`User ${socket.userId} joined chat: ${chatId}`);
+    });
+
+    // Join group chat rooms
+    socket.on("joinGroupRoom", (groupId) => {
+      socket.join(groupId);
+      // console.log(`User ${socket.userId} joined group: ${groupId}`);
     });
 
     // Handle personal chat messages
@@ -227,6 +236,24 @@ io.on("connection", (socket) => {
         });
       } catch (error) {
         console.error("Error broadcasting message:", error);
+      }
+    });
+
+    // Handle group chat messages
+    socket.on("sendGroupMessage", async ({ groupId, message }) => {
+      try {
+        // Broadcast the message to all users in the group room except sender
+
+        socket.to(groupId).emit("newGroupMessage", {
+          _id: message._id,
+          sender: message.sender,
+          content: message.content,
+          mediaUrl: message.mediaUrl,
+          createdAt: message.createdAt,
+          group: groupId,
+        });
+      } catch (error) {
+        console.error("Error broadcasting group message:", error);
       }
     });
 
@@ -251,7 +278,7 @@ io.on("connection", (socket) => {
   handleChatEvents();
 
   socket.on("disconnect", () => {
-    console.log("User disconnected:", socket.id);
+    // console.log("User disconnected:", socket.id);
     // Cleanup any room-specific timers if needed
   });
 });
@@ -268,6 +295,7 @@ app.use("/api/rooms", roomRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/chats", chatRoutes); // Add chat routes
+app.use("/api/groups", groupRoutes); // Add chat routes
 
 // Start Server
 const PORT = process.env.PORT || 5000;

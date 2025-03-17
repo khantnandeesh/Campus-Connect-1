@@ -10,6 +10,10 @@ const groupSchema = new mongoose.Schema(
     members: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     admins: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
     pinnedMessages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+    messages: [{ type: mongoose.Schema.Types.ObjectId, ref: "Message" }],
+    documents: [{ type: String }], // URLs of documents
+    images: [{ type: String }], // URLs of images
+    avatar: { type: String }, // URL of group avatar
   },
   { timestamps: true }
 );

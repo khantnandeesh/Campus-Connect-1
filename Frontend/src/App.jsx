@@ -11,6 +11,7 @@ import UserProfile from "./pages/UserProfile"; // Import the new component
 import Profile from "./pages/Profile";
 import Layout from "./pages/Layout"; // Import the Layout component
 import ChatPage from "./pages/ChatPage";
+import GroupDetails from "./pages/GroupDetails"; // Import the new component
 
 const App = () => {
   return (
@@ -27,6 +28,7 @@ const App = () => {
           <Route path="/userProfile/:userId" element={<Profile />} />
           <Route path="/profile/:userId" element={<UserProfile />} />
           <Route path="/chats" element={<ChatPage />} />
+          <Route path="/groupDetails/:groupId" element={<GroupDetails />} />
         </Route>
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />

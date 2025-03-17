@@ -33,6 +33,7 @@ export const getUserChats = async (req, res) => {
       .populate({
         path: "messages",
         select: "content sender mediaUrl createdAt",
+        populate: { path: "sender", select: "username avatar" },
       })
       .select("participants messages createdAt");
     res.json(chats);
@@ -55,16 +56,17 @@ export const sendMessage = async (req, res) => {
     chat.messages.push(message._id);
     await chat.save();
 
-    // Emit to specific chat room
-    req.io.to(chatId).emit("newMessage", {
+    // Emit to specific chat room with detailed sender info (id and avatar)
+    const newMessage = {
       _id: message._id,
-      sender: userId,
+      sender: { _id: userId, avatar: req.user.avatar },
       content,
       createdAt: message.createdAt,
       chat: chatId,
-    });
+    };
+    req.io.to(chatId).emit("newMessage", newMessage);
 
-    res.json(message);
+    res.json(newMessage); // Return the new message object
   } catch (error) {
     res.status(500).json({ message: "Error sending message", error });
   }
@@ -176,6 +178,58 @@ export const sendImage = async (req, res) => {
   }
 };
 
+// Send a document in group chat
+export const sendGroupDocument = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+  try {
+    const { groupId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
+
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "group/documents", resource_type: "raw" },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary document upload error:", error);
+            return reject(error);
+          }
+          resolve(result);
+        }
+      );
+      stream.end(req.file.buffer);
+    });
+
+    const message = new Message({
+      sender: userId,
+      content: content || "",
+      mediaUrl: result.secure_url,
+      group: groupId,
+    });
+    await message.save();
+
+    const group = await Group.findById(groupId);
+    group.messages.push(message._id);
+    await group.save();
+
+    req.io.to(groupId).emit("newGroupMessage", {
+      _id: message._id,
+      sender: userId,
+      content: content || "",
+      mediaUrl: result.secure_url,
+      createdAt: message.createdAt,
+      group: groupId,
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error("Error in sendGroupDocument:", error);
+    res.status(500).json({ message: "Error sending document", error });
+  }
+};
+
 // Delete a message in private chat
 export const deleteMessage = async (req, res) => {
   try {
@@ -230,8 +284,6 @@ export const getOnlineFriends = async (req, res) => {
     const onlineFriends = user.friends.filter((friend) =>
       req.io.sockets.sockets.has(friend._id.toString())
     );
-
-    console.log("Online friends:", onlineFriends);
 
     const friendsWithMessages = await Promise.all(
       onlineFriends.map(async (friend) => {

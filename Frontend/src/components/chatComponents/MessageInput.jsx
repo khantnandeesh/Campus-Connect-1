@@ -6,10 +6,16 @@ import {
   sendImage,
   sendDocument,
   createChat,
-  socket,
+  socket as personalSocket,
 } from "../../utils/personalChatService";
+import {
+  sendGroupMessage,
+  sendGroupImage,
+  sendGroupDocument,
+  socket as groupSocket,
+} from "../../utils/groupService";
 
-const MessageInput = ({ selectedUser }) => {
+const MessageInput = ({ selectedUser, selectedGroup }) => {
   const authUser = JSON.parse(localStorage.getItem("user"));
 
   const [text, setText] = useState("");
@@ -21,20 +27,22 @@ const MessageInput = ({ selectedUser }) => {
 
   // Debounce typing status
   useEffect(() => {
-    if (text && selectedUser?.chatId) {
-      socket.emit("typing", {
-        chatId: selectedUser.chatId,
+    const currentSocket = selectedGroup ? groupSocket : personalSocket;
+    if (text && (selectedUser?.chatId || selectedGroup?._id)) {
+      const chatId = selectedUser?.chatId || selectedGroup?._id;
+      currentSocket.emit("typing", {
+        chatId,
         userId: authUser._id,
       });
       const timeout = setTimeout(() => {
-        socket.emit("stopTyping", {
-          chatId: selectedUser.chatId,
+        currentSocket.emit("stopTyping", {
+          chatId,
           userId: authUser._id,
         });
       }, 1000);
       return () => clearTimeout(timeout);
     }
-  }, [text, selectedUser?.chatId]);
+  }, [text, selectedUser?.chatId, selectedGroup?._id]);
 
   const clearFileInputs = useCallback(() => {
     setImagePreview(null);
@@ -71,6 +79,18 @@ const MessageInput = ({ selectedUser }) => {
     clearFileInputs();
   }, [clearFileInputs]);
 
+  const handleImageUpload = async (imageFile, messageText) => {
+    const formData = new FormData();
+    formData.append("file", imageFile); // ensure key is "file"
+    formData.append("content", messageText || "");
+    try {
+      const response = await sendGroupImage(selectedGroup._id, formData);
+      // ...existing success handling...
+    } catch (error) {
+      toast.error("Failed to send image");
+    }
+  };
+
   const handleSendMessage = useCallback(
     async (e) => {
       e.preventDefault();
@@ -79,19 +99,33 @@ const MessageInput = ({ selectedUser }) => {
 
       try {
         setIsUploading(true);
-        if (!selectedUser.chatId) {
+        if (selectedUser && !selectedUser.chatId) {
           const chat = await createChat(selectedUser._id);
           selectedUser.chatId = chat._id;
         }
+        const chatId = selectedUser?.chatId || selectedGroup?._id;
+
         // When a file is selected, always send file with the provided text (can be empty)
         if (selectedFile) {
           if (selectedFile.type.startsWith("image/")) {
-            await sendImage(selectedUser.chatId, selectedFile, text.trim());
+            if (selectedUser) {
+              await sendImage(chatId, selectedFile, text.trim());
+            } else {
+              await handleImageUpload(selectedFile, text.trim());
+            }
           } else {
-            await sendDocument(selectedUser.chatId, selectedFile, text.trim());
+            if (selectedUser) {
+              await sendDocument(chatId, selectedFile, text.trim());
+            } else {
+              await sendGroupDocument(chatId, selectedFile, text.trim());
+            }
           }
         } else if (text.trim()) {
-          await sendMessage(selectedUser.chatId, text.trim());
+          if (selectedUser) {
+            await sendMessage(chatId, text.trim());
+          } else {
+            await sendGroupMessage(chatId, { content: text.trim() }); // Ensure this event is emitted
+          }
         }
 
         // Clear form
@@ -104,7 +138,14 @@ const MessageInput = ({ selectedUser }) => {
         setIsUploading(false);
       }
     },
-    [text, selectedFile, selectedUser, isUploading, clearFileInputs]
+    [
+      text,
+      selectedFile,
+      selectedUser,
+      selectedGroup,
+      isUploading,
+      clearFileInputs,
+    ]
   );
 
   return (

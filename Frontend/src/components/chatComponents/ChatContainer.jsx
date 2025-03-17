@@ -5,17 +5,22 @@ import MessageSkeleton from "./skeletons/MessageSkeleton";
 import { formatMessageTime } from "../../lib/utils";
 import { FileText, Trash2 } from "lucide-react";
 import { deleteMessage } from "../../utils/personalChatService";
+import { deleteGroupMessage } from "../../utils/groupService";
 import { toast } from "react-hot-toast";
-
+import { socket } from "../../utils/groupService";
 const ChatContainer = ({
   setSelectedUser,
   selectedUser,
+  setSelectedGroup,
+  selectedGroup,
   messages,
   setMessages,
   isMessagesLoading,
   authUser,
   onlineUsers,
 }) => {
+  console.log(selectedGroup);
+
   const [selectedMessage, setSelectedMessage] = useState(null);
   const messageEndRef = useRef(null);
   const scrollContainerRef = useRef(null);
@@ -36,15 +41,36 @@ const ChatContainer = ({
     }
   }, []);
 
+  useEffect(() => {
+    const handleNewMessage = (newMessage) => {
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    };
+
+    if (selectedGroup) {
+      socket.on("newGroupMessage", handleNewMessage);
+    }
+
+    return () => {
+      if (selectedGroup) {
+        socket.off("newGroupMessage", handleNewMessage);
+      }
+    };
+  }, [selectedGroup]);
+
   const handleMessageClick = (message) => {
-    if (message.sender === authUser._id) {
-      setSelectedMessage(message._id === selectedMessage ? null : message._id);
+    // Use optional chaining to check the sender
+    if (message.sender?._id === authUser._id) {
+      setSelectedMessage(selectedMessage === message._id ? null : message._id);
     }
   };
 
   const handleDeleteMessage = async (messageId) => {
     try {
-      await deleteMessage(selectedUser.chatId, messageId);
+      if (selectedUser) {
+        await deleteMessage(selectedUser.chatId, messageId);
+      } else if (selectedGroup) {
+        await deleteGroupMessage(selectedGroup._id, messageId);
+      }
       setMessages(messages.filter((msg) => msg._id !== messageId));
       setSelectedMessage(null);
     } catch (error) {
@@ -57,11 +83,16 @@ const ChatContainer = ({
       <div className="flex-1 flex flex-col overflow-auto">
         <ChatHeader
           selectedUser={selectedUser}
+          selectedGroup={selectedGroup}
           setSelectedUser={setSelectedUser}
+          setSelectedGroup={setSelectedGroup}
           onlineUsers={onlineUsers}
         />
         <MessageSkeleton />
-        <MessageInput selectedUser={selectedUser} />
+        <MessageInput
+          selectedUser={selectedUser}
+          selectedGroup={selectedGroup}
+        />
       </div>
     );
   }
@@ -70,7 +101,9 @@ const ChatContainer = ({
     <div className="flex-1 flex flex-col overflow-auto bg-[#0f172a]">
       <ChatHeader
         selectedUser={selectedUser}
+        selectedGroup={selectedGroup}
         setSelectedUser={setSelectedUser}
+        setSelectedGroup={setSelectedGroup}
         onlineUsers={onlineUsers}
       />
       <div
@@ -81,9 +114,11 @@ const ChatContainer = ({
       >
         {messages.map((message, index) => (
           <div
-            key={message._id}
+            key={`${message._id}-${index}`} // updated key to ensure uniqueness
             className={`flex items-start gap-2 animate-fade-in ${
-              message.sender === authUser._id ? "flex-row-reverse" : "flex-row"
+              message.sender?._id === authUser._id
+                ? "flex-row-reverse"
+                : "flex-row"
             }`}
             ref={index === messages.length - 1 ? messageEndRef : null}
           >
@@ -91,24 +126,36 @@ const ChatContainer = ({
               <div className="size-10 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
                 <img
                   src={
-                    message.sender === authUser._id
+                    message.sender?._id === authUser._id
                       ? authUser.avatar || "/avatar.png"
-                      : selectedUser.avatar || "/avatar.png"
+                      : message.sender?.avatar || "/avatar.png"
                   }
                   alt="profile pic"
                   className="w-full h-full object-cover"
                 />
+                {/* Optionally show username below the avatar for group messages */}
+                {message.sender?._id !== authUser._id && (
+                  <span className="text-xs text-gray-300 text-center block">
+                    {message.sender.username}
+                  </span>
+                )}
               </div>
             </div>
             <div
+              // Call handler directly; the function itself checks if the current user is the sender
               onClick={() => handleMessageClick(message)}
               className="relative cursor-pointer group"
             >
+              {message.sender?._id !== authUser._id && (
+                <div className="mb-1 text-xs text-gray-300">
+                  {message.sender.username}
+                </div>
+              )}
               <div
                 className={`rounded-lg px-4 py-2 shadow-lg ${
-                  message.sender === authUser._id
+                  message.sender?._id === authUser._id
                     ? "bg-blue-600 text-white rounded-tr-none"
-                    : "bg-[#1e293b] text-gray-100 rounded-tl-none"
+                    : "bg-gray-400 text-black rounded-tl-none"
                 }`}
               >
                 {message.mediaUrl && (
@@ -154,7 +201,7 @@ const ChatContainer = ({
           </div>
         ))}
       </div>
-      <MessageInput selectedUser={selectedUser} />
+      <MessageInput selectedUser={selectedUser} selectedGroup={selectedGroup} />
     </div>
   );
 };
