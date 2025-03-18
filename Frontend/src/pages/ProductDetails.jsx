@@ -135,7 +135,7 @@ const ProductDetails = () => {
               { withCredentials: true }
             );
             alert("Payment successful! Product purchased.");
-            navigate("/orders"); // Redirect to orders or confirmation page
+            navigate("/marketplace/orders");
           } catch (error) {
             console.error("Payment verification failed:", error);
             alert("Payment verification failed. Please contact support.");
