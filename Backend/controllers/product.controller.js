@@ -4,14 +4,14 @@ import crypto from "crypto";
 
 // Initialize Razorpay (Test Mode)
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY_ID, // Make sure this is set in your .env file
-  key_secret: process.env.RAZORPAY_KEY_SECRET, // Make sure this is set in your .env file
+  key_id: process.env.RAZORPAY_KEY_ID, 
+  key_secret: process.env.RAZORPAY_KEY_SECRET, 
 });
 
 export const buyNow = async (req, res) => {
   try {
     const { productId } = req.params;
-    const { buyerId } = req.body; // Buyer ID must be passed from the frontend
+    const { buyerId } = req.body; 
 
     // Fetch the product from database
     const product = await Product.findById(productId);
@@ -27,7 +27,6 @@ export const buyNow = async (req, res) => {
       return res.status(400).json({ message: "Invalid product price" });
     }
 
-    // Create Razorpay order (amount in paise)
     const options = {
       amount: product.price * 100,
       currency: "INR",

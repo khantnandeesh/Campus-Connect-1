@@ -10,7 +10,7 @@ import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import marketplaceRoutes from "./routes/marketplace.routes.js";
-import chatRoutes from "./routes/chat.routes.js";
+import chatRoutes from "./routes/chat.marketplace.routes.js";
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";

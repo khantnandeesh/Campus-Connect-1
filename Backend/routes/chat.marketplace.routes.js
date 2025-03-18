@@ -1,6 +1,6 @@
 import express from "express";
 import mongoose from "mongoose";
-import Chat from "../models/chat.model.js";
+import Chat from "../models/chat.marketplace.model.js";
 import protectRoute from "../middlewares/protectRoute.js";
 
 const router = express.Router();

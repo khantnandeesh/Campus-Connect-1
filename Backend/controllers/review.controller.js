@@ -14,7 +14,7 @@ export const getReviews = async (req, res) => {
 
 // Add a review (with rating)
 export const addReview = async (req, res) => {
-  const { rating, text } = req.body;  // Now we expect both rating and text
+  const { rating, text } = req.body; 
   const { productId } = req.params;
   const userId = req.user._id;
 
