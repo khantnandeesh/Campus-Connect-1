@@ -14,6 +14,16 @@ const messageSchema = new mongoose.Schema(
     isGlobal: { type: Boolean, default: false }, // Announcement visible to all users of the same college
     poll: { type: mongoose.Schema.Types.ObjectId, ref: "Poll" }, // Reference to Poll model
     type: { type: String, enum: ["text", "poll", "media"], default: "text" }, // Type of message
+    expiryDate: { type: Date }, // new: expiry date for announcements
+    category: {
+      type: String,
+      enum: [
+        "Event Notices",
+        "Important Updates",
+        "Club & Group Announcements",
+        "Achievements & Highlights",
+      ],
+    }, // new: category for announcements
   },
   { timestamps: true }
 );

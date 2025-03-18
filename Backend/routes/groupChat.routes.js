@@ -31,6 +31,12 @@ import {
 } from "../controllers/group.controller.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
+import {
+  createAnnouncement, // new: create announcement
+  getAnnouncements, // new: get announcements
+  deleteAnnouncement, // new: delete announcement
+  updateAnnouncement, // new: update announcement
+} from "../controllers/announcement.controller.js";
 
 const router = express.Router();
 
@@ -88,5 +94,15 @@ router.get("/pinned/:groupId", protectRoute, getPinnedMessages);
 router.post("/poll/:groupId", protectRoute, createPoll);
 router.post("/poll/vote/:pollId", protectRoute, votePoll);
 router.get("/polls/:groupId", protectRoute, getGroupPolls);
+
+// Announcement Routes
+router.post("/announcement", protectRoute, createAnnouncement); // Create an announcement
+router.get("/announcements", protectRoute, getAnnouncements); // Get all announcements
+router.delete(
+  "/announcement/:announcementId",
+  protectRoute,
+  deleteAnnouncement
+); // Delete an announcement
+router.put("/announcement/:announcementId", protectRoute, updateAnnouncement); // Update an announcement
 
 export default router;

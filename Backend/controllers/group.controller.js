@@ -5,6 +5,7 @@ import User from "../models/user.model.js";
 import cloudinary from "../config/cloudinary.js"; // Ensure Cloudinary is imported
 import multer from "multer";
 import Poll from "../models/poll.model.js";
+import Announcement from "../models/announcement.model.js"; // new: import announcement model
 // Set up multer for handling file uploads
 const storage = multer.memoryStorage();
 const upload = multer({ storage });
@@ -145,17 +146,19 @@ export const handleGroupRequest = async (req, res) => {
 export const postAnnouncement = async (req, res) => {
   try {
     const { groupId } = req.params;
-    const { content, isGlobal } = req.body;
+    const { content, isGlobal, category, expiryDate } = req.body;
     const userId = req.user.id;
 
-    const message = new Message({
+    const announcement = new Announcement({
       sender: userId,
       content,
       group: groupId,
       isGlobal,
+      category,
+      expiryDate,
     });
-    await message.save();
-    res.json({ message: "Announcement posted successfully" });
+    await announcement.save();
+    res.json({ message: "Announcement posted successfully", announcement });
   } catch (error) {
     res.status(500).json({ message: "Error posting announcement", error });
   }
