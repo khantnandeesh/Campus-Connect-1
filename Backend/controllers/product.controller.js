@@ -1,4 +1,103 @@
 import Product from "../models/product.model.js";
+import Razorpay from "razorpay";
+import crypto from "crypto";
+
+// Initialize Razorpay (Test Mode)
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY_ID, // Make sure this is set in your .env file
+  key_secret: process.env.RAZORPAY_KEY_SECRET, // Make sure this is set in your .env file
+});
+
+export const buyNow = async (req, res) => {
+  try {
+    const { productId } = req.params;
+    const { buyerId } = req.body; // Buyer ID must be passed from the frontend
+
+    // Fetch the product from database
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+    if (product.sold) {
+      return res.status(400).json({ message: "Product already sold" });
+    }
+
+    // Validate product price
+    if (!product.price || isNaN(product.price)) {
+      return res.status(400).json({ message: "Invalid product price" });
+    }
+
+    // Create Razorpay order (amount in paise)
+    const options = {
+      amount: product.price * 100,
+      currency: "INR",
+      receipt: `order_rcptid_${productId}`,
+    };
+
+    const order = await razorpay.orders.create(options);
+    if (!order) {
+      return res.status(500).json({ message: "Failed to create order" });
+    }
+
+    // Send order details to frontend
+    res.status(200).json({
+      orderId: order.id,
+      productId: product._id,
+      amount: order.amount,
+      currency: order.currency,
+      key: process.env.RAZORPAY_KEY_ID,
+    });
+  } catch (error) {
+    console.error("Error in buyNow:", error);
+    res.status(500).json({ message: "Payment initiation failed", error: error.message });
+  }
+};
+
+// Verify Payment & Mark Product as Sold
+export const verifyPayment = async (req, res) => {
+  try {
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, productId, buyerId } = req.body;
+    const generatedSignature = crypto
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .digest("hex");
+
+    if (generatedSignature !== razorpay_signature) {
+      return res.status(400).json({ message: "Payment verification failed" });
+    }
+
+    const product = await Product.findById(productId);
+    if (!product) {
+      return res.status(404).json({ message: "Product not found" });
+    }
+
+    product.sold = true;
+    product.buyerId = buyerId;
+    await product.save();
+
+    res.status(200).json({ message: "Payment verified, product marked as sold" });
+  } catch (error) {
+    console.error("Error in verifyPayment:", error);
+    res.status(500).json({ message: "Payment verification failed", error: error.message });
+  }
+};
+
+
+export const getUserOrders = async (req, res) => {
+    try {
+      const userId = req.user._id;
+      // Find all products that are sold and where the buyerId matches the logged-in user
+      const orders = await Product.find({ sold: true, buyerId: userId })
+        .populate("sellerId", "username email")
+        .sort({ createdAt: -1 });
+      res.status(200).json(orders);
+    } catch (error) {
+      console.error("Error fetching orders:", error);
+      res.status(500).json({ message: "Error fetching orders" });
+    }
+  };
+  
+
 
 // Get all products
 export const getAllProducts = async (req, res) => {

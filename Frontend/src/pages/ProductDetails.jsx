@@ -1,7 +1,10 @@
+// src/pages/ProductDetails.jsx
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; 
 import axios from "axios";
 import { useSelector } from "react-redux";
+
+const SERVER_URL = "http://localhost:3000";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -21,7 +24,7 @@ const ProductDetails = () => {
   // Function to fetch reviews
   const fetchReviews = async () => {
     try {
-      const response = await axios.get(`http://localhost:3000/api/marketplace/products/${id}/reviews`);
+      const response = await axios.get(`${SERVER_URL}/api/marketplace/products/${id}/reviews`);
       setReviews(response.data);
     } catch (error) {
       console.error("Error fetching reviews:", error);
@@ -31,7 +34,7 @@ const ProductDetails = () => {
   useEffect(() => {
     const fetchProduct = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/marketplace/products/${id}`);
+        const response = await axios.get(`${SERVER_URL}/api/marketplace/products/${id}`);
         setProduct(response.data);
       } catch (error) {
         console.error("Error fetching product:", error);
@@ -42,8 +45,9 @@ const ProductDetails = () => {
 
     const checkWishlist = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/marketplace/wishlist", { withCredentials: true });
-        setIsInWishlist(response.data.some((item) => item._id === id));
+        const response = await axios.get(`${SERVER_URL}/api/marketplace/wishlist`, { withCredentials: true });
+        // Assuming each wishlist item has a "productId" field
+        setIsInWishlist(response.data.some((item) => item.productId === id));
       } catch (error) {
         console.error("Error checking wishlist:", error);
       }
@@ -56,7 +60,7 @@ const ProductDetails = () => {
 
   const addToWishlist = async () => {
     try {
-      await axios.post(`http://localhost:3000/api/marketplace/wishlist/${id}`, {}, { withCredentials: true });
+      await axios.post(`${SERVER_URL}/api/marketplace/wishlist/${id}`, {}, { withCredentials: true });
       setIsInWishlist(true);
     } catch (error) {
       console.error("Error adding to wishlist:", error);
@@ -67,7 +71,7 @@ const ProductDetails = () => {
     if (!reviewText.trim()) return;
     try {
       await axios.post(
-        `http://localhost:3000/api/marketplace/products/${id}/reviews`,
+        `${SERVER_URL}/api/marketplace/products/${id}/reviews`,
         { rating, text: reviewText },
         { withCredentials: true }
       );
@@ -84,7 +88,7 @@ const ProductDetails = () => {
 
   const handleDeleteReview = async (reviewId) => {
     try {
-      await axios.delete(`http://localhost:3000/api/marketplace/products/${id}/reviews/${reviewId}`, {
+      await axios.delete(`${SERVER_URL}/api/marketplace/products/${id}/reviews/${reviewId}`, {
         withCredentials: true,
       });
       fetchReviews();
@@ -93,17 +97,80 @@ const ProductDetails = () => {
     }
   };
 
-  if (loading) return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900">
-      <p className="text-gray-400 text-xl">Loading...</p>
-    </div>
-  );
+  // Buy Now function – initiates payment using Razorpay test mode
+  const handleBuyNow = async () => {
+    if (!userId) {
+      alert("Please log in to purchase this product.");
+      return;
+    }
+    try {
+      // Create Razorpay order via backend
+      const response = await axios.post(
+        `${SERVER_URL}/api/marketplace/${id}/buy`,
+        { buyerId: userId },
+        { withCredentials: true }
+      );
+      const { orderId, amount, currency, key } = response.data;
+      
+      // Set up Razorpay options
+      const options = {
+        key, // Razorpay Test Key ID from backend response
+        amount, // Amount in paise
+        currency,
+        name: "Campus Connect Marketplace",
+        description: `Purchase of ${product.title}`,
+        order_id: orderId,
+        handler: async function (razorpayResponse) {
+          try {
+            // Verify payment on backend
+            await axios.post(
+              `${SERVER_URL}/api/marketplace/verify-payment`,
+              { 
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature: razorpayResponse.razorpay_signature,
+                productId: id,
+                buyerId: userId
+              },
+              { withCredentials: true }
+            );
+            alert("Payment successful! Product purchased.");
+            navigate("/orders"); // Redirect to orders or confirmation page
+          } catch (error) {
+            console.error("Payment verification failed:", error);
+            alert("Payment verification failed. Please contact support.");
+          }
+        },
+        prefill: {
+          name: user.username,
+          email: user.email,
+        },
+        theme: {
+          color: "#3399cc",
+        },
+      };
+
+      const razorpay = new window.Razorpay(options);
+      razorpay.open();
+    } catch (error) {
+      console.error("Error initiating purchase:", error);
+      alert("Purchase failed. Please try again.");
+    }
+  };
+
+  if (loading) 
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <p className="text-gray-400 text-xl">Loading...</p>
+      </div>
+    );
   
-  if (!product) return (
-    <div className="flex justify-center items-center min-h-screen bg-gray-900">
-      <p className="text-red-500 text-xl">Product not found</p>
-    </div>
-  );
+  if (!product) 
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+        <p className="text-red-500 text-xl">Product not found</p>
+      </div>
+    );
 
   return (
     <div className="p-4 sm:p-6 bg-gray-900 min-h-screen text-white flex items-center justify-center">
@@ -112,7 +179,7 @@ const ProductDetails = () => {
           {/* Left Column: Product Details */}
           <div className="lg:w-1/2 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 transition-all hover:shadow-2xl">
             <div className="relative h-72 mb-4 overflow-hidden rounded-lg">
-              {product.images.length > 1 ? (
+              {product.images?.length > 1 ? (
                 <>
                   <img
                     src={product.images[currentImage]}
@@ -121,13 +188,21 @@ const ProductDetails = () => {
                   />
                   <div className="absolute inset-0 flex justify-between items-center px-2">
                     <button
-                      onClick={() => setCurrentImage((prev) => (prev === 0 ? product.images.length - 1 : prev - 1))}
+                      onClick={() =>
+                        setCurrentImage((prev) =>
+                          prev === 0 ? product.images.length - 1 : prev - 1
+                        )
+                      }
                       className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all"
                     >
                       ◀
                     </button>
                     <button
-                      onClick={() => setCurrentImage((prev) => (prev === product.images.length - 1 ? 0 : prev + 1))}
+                      onClick={() =>
+                        setCurrentImage((prev) =>
+                          prev === product.images.length - 1 ? 0 : prev + 1
+                        )
+                      }
                       className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all"
                     >
                       ▶
@@ -148,7 +223,11 @@ const ProductDetails = () => {
                   </div>
                 </>
               ) : (
-                <img src={product.images[0]} alt={product.title} className="w-full h-full object-cover rounded-lg" />
+                <img
+                  src={product.images[0]}
+                  alt={product.title}
+                  className="w-full h-full object-cover rounded-lg"
+                />
               )}
             </div>
 
@@ -175,6 +254,24 @@ const ProductDetails = () => {
               <div className="bg-yellow-500 bg-opacity-20 border border-yellow-600 rounded-lg p-3 text-center">
                 <p className="text-yellow-400">You are the seller of this product</p>
               </div>
+            ) : product.sold ? (
+              <div className="space-y-3">
+                <div className="bg-red-500 bg-opacity-20 border border-red-600 rounded-lg p-3 text-center">
+                  <p className="text-red-400">Product Sold</p>
+                </div>
+                <button
+                  onClick={addToWishlist}
+                  disabled={isInWishlist}
+                  className={`px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors ${
+                    isInWishlist 
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed" 
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
+                  }`}
+                >
+                  <span>{isInWishlist ? "✅" : "❤️"}</span>
+                  <span>{isInWishlist ? "Added to Wishlist" : "Add to Wishlist"}</span>
+                </button>
+              </div>
             ) : (
               <div className="space-y-3">
                 <button
@@ -189,12 +286,19 @@ const ProductDetails = () => {
                   disabled={isInWishlist}
                   className={`px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors ${
                     isInWishlist 
-                    ? "bg-gray-700 text-gray-400 cursor-not-allowed" 
-                    : "bg-blue-600 hover:bg-blue-700 text-white"
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed" 
+                      : "bg-blue-600 hover:bg-blue-700 text-white"
                   }`}
                 >
                   <span>{isInWishlist ? "✅" : "❤️"}</span>
                   <span>{isInWishlist ? "Added to Wishlist" : "Add to Wishlist"}</span>
+                </button>
+                <button
+                  onClick={handleBuyNow}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors"
+                >
+                  <span>🛒</span>
+                  <span>Buy Now</span>
                 </button>
               </div>
             )}

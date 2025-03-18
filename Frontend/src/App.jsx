@@ -16,6 +16,7 @@ import Wishlist from "./pages/Wishlist";
 import MyListings from "./pages/MyListings";
 import SellerChatPage from "./pages/SellerChatPage";
 import ChatInbox from "./pages/ChatInbox";
+import MyOrders from "./pages/MyOrders";
 
 
 const App = () => {
@@ -38,6 +39,7 @@ const App = () => {
         <Route path="/marketplace/edit/:id" element={<AddEditProduct />} />
         <Route path="/marketplace/wishlist" element={<Wishlist />} />
         <Route path="/marketplace/listings" element={<MyListings />} />
+        <Route path="/marketplace/orders" element={<MyOrders />} />
         <Route path="/chat/:sellerId" element={<SellerChatPage />} />
         <Route path="/chat/inbox" element={<ChatInbox/>} />
       </Routes>

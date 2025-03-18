@@ -99,6 +99,12 @@ const Marketplace = () => {
           >
             📦 My Listings
           </Link>
+          <Link
+            to="/marketplace/orders"
+            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+          >
+            🛒 My Orders
+          </Link>
         </div>
       </div>
 

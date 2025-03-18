@@ -13,6 +13,7 @@ const productSchema = new mongoose.Schema({
   price: { type: Number, required: true },
   category: { type: String, required: true },
   sold: { type: Boolean, default: false },
+  buyerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
   images: [{ type: String }],
   sellerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   createdAt: { type: Date, default: Date.now },
