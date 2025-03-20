@@ -8,7 +8,7 @@ import {
   getOnlineFriends,
   getUserFriends,
   deleteMessage, // Import deleteMessage
-} from "../controllers/chat.controller.js";
+} from "../controllers/chat.personal.controller.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
 

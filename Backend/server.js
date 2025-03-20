@@ -12,13 +12,10 @@ import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
-import chatRoutes from "./routes/chat.routes.js"; // Import chat routes
+import chatRoutes from "./routes/chat.personal.routes.js"; // Import chat routes
 import { Server } from "socket.io";
 import http from "http";
 import StudyRoom from "./models/room.model.js";
-import Chat from "./models/chat.model.js";
-import Message from "./models/message.model.js";
-import Group from "./models/group.model.js";
 import groupRoutes from "./routes/groupChat.routes.js";
 import cloudinary from "./config/cloudinary.js"; // Ensure Cloudinary is imported
 dotenv.config();

@@ -1,4 +1,4 @@
-import Chat from "../models/chat.model.js";
+import Chat from "../models/chat.personal.model.js";
 import Message from "../models/message.model.js";
 import User from "../models/user.model.js";
 import cloudinary from "../config/cloudinary.js";
@@ -74,7 +74,6 @@ export const sendMessage = async (req, res) => {
 
 // Send a document in private chat
 export const sendDocument = async (req, res) => {
-  // Check if a file was uploaded
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
@@ -111,7 +110,11 @@ export const sendDocument = async (req, res) => {
 
     req.io.to(chatId).emit("newMessage", {
       _id: message._id,
-      sender: userId,
+      sender: {
+        _id: userId,
+        username: req.user.username,
+        avatar: req.user.avatar,
+      },
       content: content || "",
       mediaUrl: result.secure_url,
       createdAt: message.createdAt,
@@ -127,7 +130,6 @@ export const sendDocument = async (req, res) => {
 
 // Send an image in private chat
 export const sendImage = async (req, res) => {
-  // Check if a file was uploaded
   if (!req.file) {
     return res.status(400).json({ message: "No file uploaded" });
   }
@@ -164,7 +166,11 @@ export const sendImage = async (req, res) => {
 
     req.io.to(chatId).emit("newMessage", {
       _id: message._id,
-      sender: userId,
+      sender: {
+        _id: userId,
+        username: req.user.username,
+        avatar: req.user.avatar,
+      },
       content: content || "",
       mediaUrl: result.secure_url,
       createdAt: message.createdAt,

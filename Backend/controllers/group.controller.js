@@ -402,64 +402,59 @@ export const deleteGroupMessage = async (req, res) => {
 };
 
 // Send a document in group chat (reusing Cloudinary upload, similar to personal chat)
-export const sendGroupDocument = [
-  upload.single("file"), // Use multer middleware to handle file upload
-  async (req, res) => {
-    if (!req.file) {
-      return res.status(400).json({ message: "No file uploaded" });
-    }
-    try {
-      const { groupId } = req.params;
-      const { content } = req.body;
-      const userId = req.user.id;
+export const sendGroupDocument = async (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+  try {
+    const { groupId } = req.params;
+    const { content } = req.body;
+    const userId = req.user.id;
 
-      const result = await new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream(
-          { folder: "group/documents", resource_type: "raw" },
-          (error, result) => {
-            if (error) {
-              console.error("Cloudinary document upload error:", error);
-              return reject(error);
-            }
-            resolve(result);
+    const result = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream(
+        { folder: "group/documents", resource_type: "raw" },
+        (error, result) => {
+          if (error) {
+            console.error("Cloudinary document upload error:", error);
+            return reject(error);
           }
-        );
-        stream.end(req.file.buffer);
-      });
-
-      const message = new Message({
-        sender: userId,
-        content: content || "",
-        mediaUrl: result.secure_url,
-        group: groupId,
-      });
-      await message.save();
-
-      const group = await Group.findById(groupId);
-      group.messages.push(message._id);
-      await group.save();
-
-      // Retrieve full sender details (username and avatar)
-      const senderDetails = await User.findById(userId).select(
-        "username avatar"
+          resolve(result);
+        }
       );
+      stream.end(req.file.buffer); // Use buffer from uploadMiddleware
+    });
 
-      req.io.to(groupId).emit("newGroupMessage", {
-        _id: message._id,
-        sender: senderDetails, // updated: full user details rather than just id
-        content: content || "",
-        mediaUrl: result.secure_url,
-        createdAt: message.createdAt,
-        group: groupId,
-      });
+    const message = new Message({
+      sender: userId,
+      content: content || "",
+      mediaUrl: result.secure_url,
+      group: groupId,
+    });
+    await message.save();
 
-      res.json(message);
-    } catch (error) {
-      console.error("Error in sendGroupDocument:", error);
-      res.status(500).json({ message: "Error sending document", error });
-    }
-  },
-];
+    const group = await Group.findById(groupId);
+    group.messages.push(message._id);
+    await group.save();
+
+    // Retrieve full sender details (username and avatar)
+    const senderDetails = await User.findById(userId).select("username avatar");
+
+    req.io.to(groupId).emit("newGroupMessage", {
+      _id: message._id,
+      sender: senderDetails, // updated: full user details rather than just id
+      content: content || "",
+      mediaUrl: result.secure_url,
+      createdAt: message.createdAt,
+      group: groupId,
+    });
+
+    res.json(message);
+  } catch (error) {
+    console.error("Error in sendGroupDocument:", error);
+    res.status(500).json({ message: "Error sending document", error });
+  }
+};
 
 // Send an image in group chat (similar to personal chat)
 export const sendGroupImage = async (req, res) => {
