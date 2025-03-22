@@ -263,6 +263,29 @@ const GroupDetails = () => {
                   )}
                 </div>
                 <label className="block text-sm font-medium text-white mb-1">
+                  Privacy
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    name="isPublic"
+                    type="checkbox"
+                    checked={
+                      editedGroupDetails.isPublic ?? groupDetails.isPublic
+                    }
+                    onChange={(e) =>
+                      setEditedGroupDetails({
+                        ...editedGroupDetails,
+                        isPublic: e.target.checked,
+                      })
+                    }
+                  />
+                  <span className="ml-2">
+                    {editedGroupDetails.isPublic ?? groupDetails.isPublic
+                      ? "Public"
+                      : "Private"}
+                  </span>
+                </div>
+                <label className="block text-sm font-medium text-white mb-1">
                   Avatar
                 </label>
                 <input

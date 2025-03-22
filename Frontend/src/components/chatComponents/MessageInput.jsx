@@ -96,6 +96,19 @@ const MessageInput = ({ selectedUser, selectedGroup }) => {
     }
   };
 
+  // New handler for uploading group document
+  const handleDocumentUpload = async (documentFile, messageText) => {
+    const formData = new FormData();
+    formData.append("file", documentFile); // ensure key is "file"
+    formData.append("content", messageText || "");
+    try {
+      const response = await sendGroupDocument(selectedGroup._id, formData);
+      // ...existing success handling...
+    } catch (error) {
+      toast.error("Failed to send document");
+    }
+  };
+
   const handleSendMessage = useCallback(
     async (e) => {
       e.preventDefault();
@@ -122,7 +135,7 @@ const MessageInput = ({ selectedUser, selectedGroup }) => {
             if (selectedUser) {
               await sendDocument(chatId, selectedFile, text.trim());
             } else {
-              await sendGroupDocument(chatId, selectedFile, text.trim());
+              await handleDocumentUpload(selectedFile, text.trim());
             }
           }
         } else if (text.trim()) {

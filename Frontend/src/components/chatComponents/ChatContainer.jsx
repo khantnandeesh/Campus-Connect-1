@@ -151,6 +151,16 @@ const ChatContainer = ({
     }
   };
 
+  const groupedMessages = messages.reduce((acc, message) => {
+    const dateString = new Date(message.createdAt).toLocaleDateString();
+    if (!acc[dateString]) acc[dateString] = [];
+    acc[dateString].push(message);
+    return acc;
+  }, {});
+  const sortedDates = Object.keys(groupedMessages).sort(
+    (a, b) => new Date(a) - new Date(b)
+  );
+
   if (isMessagesLoading) {
     return (
       <div className="flex-1 flex flex-col overflow-auto">
@@ -263,207 +273,233 @@ const ChatContainer = ({
           scrollbar-thumb-blue-600 scrollbar-track-transparent 
           scroll-smooth will-change-scroll overscroll-y-contain"
       >
-        {messages.map((message, index) => (
-          <div
-            key={`${message._id}-${index}`}
-            className="relative"
-            ref={(el) => (messageRefs.current[message._id] = el)}
-          >
-            <div
-              className={`flex items-start gap-2 animate-fade-in ${
-                message.sender?._id === authUser._id
-                  ? "flex-row-reverse"
-                  : "flex-row"
-              }`}
-              ref={index === messages.length - 1 ? messageEndRef : null}
-            >
-              <div className="flex-shrink-0">
-                <div className="size-10 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
-                  <img
-                    src={
+        {/* Group messages by date */}
+        {sortedDates.map((date) => {
+          const displayDate =
+            date === new Date().toLocaleDateString() ? "Today" : date;
+          return (
+            <div key={date}>
+              <div className="text-center my-4">
+                <span className="px-4 py-1 bg-blue-700 text-xs rounded-full">
+                  {displayDate}
+                </span>
+              </div>
+              {groupedMessages[date].map((message, index) => (
+                <div
+                  key={`${message._id}-${index}`}
+                  className="relative"
+                  ref={(el) => (messageRefs.current[message._id] = el)}
+                >
+                  <div
+                    className={`flex items-start gap-2 animate-fade-in ${
                       message.sender?._id === authUser._id
-                        ? authUser.avatar || "/avatar.png"
-                        : message.sender?.avatar || "/avatar.png"
+                        ? "flex-row-reverse"
+                        : "flex-row"
+                    }`}
+                    ref={
+                      index === groupedMessages[date].length - 1 &&
+                      date === sortedDates[sortedDates.length - 1]
+                        ? messageEndRef
+                        : null
                     }
-                    alt="profile pic"
-                    className="w-full h-full object-cover"
-                  />
-                  {/* Optionally show username below the avatar for group messages */}
-                  {message.sender?._id !== authUser._id && (
-                    <span className="text-xs text-gray-300 text-center block">
-                      {message.sender.username}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <div
-                // Call handler directly; the function itself checks if the current user is the sender
-                onClick={() => handleMessageClick(message)}
-                className="relative cursor-pointer group max-w-[70%]"
-              >
-                {message.sender?._id !== authUser._id && (
-                  <div className="mb-1 text-xs text-gray-300">
-                    {message.sender.username}
-                  </div>
-                )}
-                <div className="relative">
-                  {message.type === "poll" && message.poll ? (
-                    <div className="relative">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowActionsFor(
-                            showActionsFor === message._id ? null : message._id
-                          );
-                        }}
-                        className="absolute -top-2 -right-2 p-1.5 text-gray-200 
-                        hover:text-white bg-gray-700 hover:bg-gray-600 
-                        rounded-full opacity-0 group-hover:opacity-100 
-                        transition-opacity duration-200 z-10"
-                      >
-                        <ChevronDown size={14} />
-                      </button>
-
-                      {showActionsFor === message._id && (
-                        <div
-                          className="absolute -top-2 -right-2 mt-8 bg-gray-700 
-                        rounded-md shadow-lg py-1 z-20 min-w-[120px] border border-gray-600"
-                        >
-                          {isAdmin &&
-                            !pinnedMessages.some(
-                              (pin) => pin._id === message._id
-                            ) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePin(message._id);
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-200 
-                                hover:bg-gray-600 w-full transition-colors duration-150"
-                              >
-                                <Pin size={14} />
-                                Pin Message
-                              </button>
-                            )}
-                          {message.sender?._id === authUser._id && (
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleDeleteMessage(message._id);
-                              }}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 
-                              hover:bg-gray-600 w-full transition-colors duration-150"
-                            >
-                              <Trash2 size={14} />
-                              Delete
-                            </button>
-                          )}
-                        </div>
-                      )}
-                      <PollMessage poll={message.poll} authUser={authUser} />
+                  >
+                    <div className="flex-shrink-0">
+                      <div className="size-10 rounded-full overflow-hidden border-2 border-blue-500/30 shadow-lg shadow-blue-500/20">
+                        <img
+                          src={
+                            message.sender?._id === authUser._id
+                              ? authUser.avatar || "/avatar.png"
+                              : message.sender?.avatar || "/avatar.png"
+                          }
+                          alt="profile pic"
+                          className="w-full h-full object-cover"
+                        />
+                        {/* Optionally show username below the avatar for group messages */}
+                        {message.sender?._id !== authUser._id && (
+                          <span className="text-xs text-gray-300 text-center block">
+                            {message.sender.username}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  ) : (
                     <div
-                      className={`relative rounded-lg px-4 py-2 shadow-lg group ${
-                        message.sender?._id === authUser._id
-                          ? "bg-blue-600 text-white rounded-tr-none"
-                          : "bg-gray-400 text-black rounded-tl-none"
-                      }`}
+                      // Call handler directly; the function itself checks if the current user is the sender
+                      onClick={() => handleMessageClick(message)}
+                      className="relative cursor-pointer group max-w-[70%]"
                     >
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setShowActionsFor(
-                            showActionsFor === message._id ? null : message._id
-                          );
-                        }}
-                        className="absolute -top-2 -right-2 p-1.5 text-gray-200 
-                        hover:text-white bg-gray-700 hover:bg-gray-600 
-                        rounded-full opacity-0 group-hover:opacity-100 
-                        transition-opacity duration-200 z-10"
-                      >
-                        <ChevronDown size={14} />
-                      </button>
-
-                      {showActionsFor === message._id && (
-                        <div
-                          className="absolute -top-2 -right-2 mt-8 bg-gray-700 
-                        rounded-md shadow-lg py-1 z-20 min-w-[120px] border border-gray-600"
-                        >
-                          {isAdmin &&
-                            !pinnedMessages.some(
-                              (pin) => pin._id === message._id
-                            ) && (
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handlePin(message._id);
-                                }}
-                                className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-200 
-                                hover:bg-gray-600 w-full transition-colors duration-150"
-                              >
-                                <Pin size={14} />
-                                Pin Message
-                              </button>
-                            )}
-                          {message.sender?._id === authUser._id && (
+                      {message.sender?._id !== authUser._id && (
+                        <div className="mb-1 text-xs text-gray-300">
+                          {message.sender.username}
+                        </div>
+                      )}
+                      <div className="relative">
+                        {message.type === "poll" && message.poll ? (
+                          <div className="relative">
                             <button
                               onClick={(e) => {
                                 e.stopPropagation();
-                                handleDeleteMessage(message._id);
+                                setShowActionsFor(
+                                  showActionsFor === message._id
+                                    ? null
+                                    : message._id
+                                );
                               }}
-                              className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 
-                              hover:bg-gray-600 w-full transition-colors duration-150"
+                              className="absolute -top-2 -right-2 p-1.5 text-gray-200 
+                        hover:text-white bg-gray-700 hover:bg-gray-600 
+                        rounded-full opacity-0 group-hover:opacity-100 
+                        transition-opacity duration-200 z-10"
                             >
-                              <Trash2 size={14} />
-                              Delete
+                              <ChevronDown size={14} />
                             </button>
-                          )}
-                        </div>
-                      )}
 
-                      {/* Message content */}
-                      {message.mediaUrl && (
-                        <div className="mb-2">
-                          {message.mediaUrl.includes("/image/") ? (
-                            <img
-                              src={message.mediaUrl}
-                              alt="Media"
-                              className="max-w-[200px] rounded-md hover:scale-105 transition-transform cursor-pointer"
-                              onClick={() =>
-                                window.open(message.mediaUrl, "_blank")
-                              }
+                            {showActionsFor === message._id && (
+                              <div
+                                className="absolute -top-2 -right-2 mt-8 bg-gray-700 
+                        rounded-md shadow-lg py-1 z-20 min-w-[120px] border border-gray-600"
+                              >
+                                {isAdmin &&
+                                  !pinnedMessages.some(
+                                    (pin) => pin._id === message._id
+                                  ) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePin(message._id);
+                                      }}
+                                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-200 
+                                hover:bg-gray-600 w-full transition-colors duration-150"
+                                    >
+                                      <Pin size={14} />
+                                      Pin Message
+                                    </button>
+                                  )}
+                                {message.sender?._id === authUser._id && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteMessage(message._id);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 
+                              hover:bg-gray-600 w-full transition-colors duration-150"
+                                  >
+                                    <Trash2 size={14} />
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+                            <PollMessage
+                              poll={message.poll}
+                              authUser={authUser}
                             />
-                          ) : (
-                            <div
-                              className="flex items-center gap-2 p-2 bg-blue-900/30 rounded-md cursor-pointer hover:bg-blue-900/50"
-                              onClick={() =>
-                                window.open(message.mediaUrl, "_blank")
-                              }
+                          </div>
+                        ) : (
+                          <div
+                            className={`relative rounded-lg px-4 py-2 shadow-lg group ${
+                              message.sender?._id === authUser._id
+                                ? "bg-blue-600 text-white rounded-tr-none"
+                                : "bg-gray-400 text-black rounded-tl-none"
+                            }`}
+                          >
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setShowActionsFor(
+                                  showActionsFor === message._id
+                                    ? null
+                                    : message._id
+                                );
+                              }}
+                              className="absolute -top-2 -right-2 p-1.5 text-gray-200 
+                        hover:text-white bg-gray-700 hover:bg-gray-600 
+                        rounded-full opacity-0 group-hover:opacity-100 
+                        transition-opacity duration-200 z-10"
                             >
-                              <FileText size={20} />
-                              <span className="text-sm truncate">
-                                Uploaded Document
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      )}
-                      {message.content && (
-                        <p className="break-words leading-relaxed">
-                          {message.content}
-                        </p>
-                      )}
+                              <ChevronDown size={14} />
+                            </button>
+
+                            {showActionsFor === message._id && (
+                              <div
+                                className="absolute -top-2 -right-2 mt-8 bg-gray-700 
+                        rounded-md shadow-lg py-1 z-20 min-w-[120px] border border-gray-600"
+                              >
+                                {isAdmin &&
+                                  !pinnedMessages.some(
+                                    (pin) => pin._id === message._id
+                                  ) && (
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handlePin(message._id);
+                                      }}
+                                      className="flex items-center gap-2 px-3 py-1.5 text-sm text-gray-200 
+                                hover:bg-gray-600 w-full transition-colors duration-150"
+                                    >
+                                      <Pin size={14} />
+                                      Pin Message
+                                    </button>
+                                  )}
+                                {message.sender?._id === authUser._id && (
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteMessage(message._id);
+                                    }}
+                                    className="flex items-center gap-2 px-3 py-1.5 text-sm text-red-400 
+                              hover:bg-gray-600 w-full transition-colors duration-150"
+                                  >
+                                    <Trash2 size={14} />
+                                    Delete
+                                  </button>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Message content */}
+                            {message.mediaUrl && (
+                              <div className="mb-2">
+                                {message.mediaUrl.includes("/image/") ? (
+                                  <img
+                                    src={message.mediaUrl}
+                                    alt="Media"
+                                    className="max-w-[200px] rounded-md hover:scale-105 transition-transform cursor-pointer"
+                                    onClick={() =>
+                                      window.open(message.mediaUrl, "_blank")
+                                    }
+                                  />
+                                ) : (
+                                  <div
+                                    className="flex items-center gap-2 p-2 bg-blue-900/30 rounded-md cursor-pointer hover:bg-blue-900/50"
+                                    onClick={() =>
+                                      window.open(message.mediaUrl, "_blank")
+                                    }
+                                  >
+                                    <FileText size={20} />
+                                    <span className="text-sm truncate">
+                                      Uploaded Document
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+                            {message.content && (
+                              <p className="break-words leading-relaxed">
+                                {message.content}
+                              </p>
+                            )}
+                          </div>
+                        )}
+                        <time className="text-xs text-gray-400 mt-1 px-2">
+                          {formatMessageTime(message.createdAt)}
+                        </time>
+                      </div>
                     </div>
-                  )}
-                  <time className="text-xs text-gray-400 mt-1 px-2">
-                    {formatMessageTime(message.createdAt)}
-                  </time>
+                  </div>
                 </div>
-              </div>
+              ))}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
       <MessageInput selectedUser={selectedUser} selectedGroup={selectedGroup} />
     </div>

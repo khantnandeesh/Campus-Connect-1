@@ -586,7 +586,9 @@ export const editGroupDetails = async (req, res) => {
 
     if (name !== undefined) updates.name = name;
     if (description !== undefined) updates.description = description;
-    if (isPublic !== undefined) updates.isPublic = isPublic === "true";
+    if (isPublic !== undefined)
+      updates.isPublic =
+        typeof isPublic === "boolean" ? isPublic : isPublic === "true";
     if (tags) {
       updates.tags = tags.split(",").filter((tag) => tag.trim());
     }
