@@ -127,6 +127,7 @@ export const getPinnedMessages = async (groupId) => {
 export const deleteGroup = async (groupId) => {
   try {
     const response = await apiClient.delete(`/groups/${groupId}`);
+
     return response.data;
   } catch (error) {
     console.error("Error deleting group:", error);

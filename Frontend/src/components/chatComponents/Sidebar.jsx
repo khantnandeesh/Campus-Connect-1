@@ -35,14 +35,8 @@ const Sidebar = ({
   // Extracted fetch function for user friends
   const fetchUserFriends = async () => {
     const friends = await getUserFriends();
-    console.log("friends", friends);
+    // console.log("friends", friends);
     setUsers(friends);
-    // Update online users based on friends who are online
-    setOnlineUsers(
-      friends
-        .filter((friend) => friend.isOnline)
-        .map((friend) => friend.friend._id)
-    );
     setIsUsersLoading(false);
   };
 
@@ -55,7 +49,7 @@ const Sidebar = ({
   useEffect(() => {
     fetchUserFriends();
     fetchUserGroups();
-  }, [setOnlineUsers]);
+  }, []);
 
   // Listen for message deletion to refresh recent message info
   useEffect(() => {
@@ -63,6 +57,19 @@ const Sidebar = ({
       fetchUserFriends();
     });
     return () => socket.off("deleteMessage");
+  }, []);
+
+  // Listen for online-users event and update local users state (updating isOnline attribute)
+  useEffect(() => {
+    socket.on("online-users", (onlineList) => {
+      setUsers((prevUsers) =>
+        prevUsers.map((item) => ({
+          ...item,
+          isOnline: onlineList.includes(item.friend._id),
+        }))
+      );
+    });
+    return () => socket.off("online-users");
   }, []);
 
   const filteredUsers = useMemo(

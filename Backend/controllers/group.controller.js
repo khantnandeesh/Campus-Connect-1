@@ -178,10 +178,6 @@ export const pinMessage = async (req, res) => {
 
     if (group.pinnedMessages.includes(messageId))
       return res.status(400).json({ message: "Message already pinned" });
-
-    group.pinnedMessages.push(messageId);
-    await group.save();
-
     const pinnedMessage = await Message.findById(messageId).populate(
       "sender",
       "username avatar"
@@ -189,6 +185,8 @@ export const pinMessage = async (req, res) => {
     req.io
       .to(groupId)
       .emit("messagePinned", { messageId, message: pinnedMessage });
+    group.pinnedMessages.push(messageId);
+    group.save();
 
     res.json({ message: "Message pinned successfully", pinnedMessage });
   } catch (error) {
@@ -212,9 +210,8 @@ export const unpinMessage = async (req, res) => {
     group.pinnedMessages = group.pinnedMessages.filter(
       (id) => id.toString() !== messageId
     );
-    await group.save();
-
     req.io.to(groupId).emit("messageUnpinned", messageId);
+    group.save();
     res.json({ message: "Message unpinned successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error unpinning message", error });
@@ -348,34 +345,25 @@ export const sendGroupMessage = async (req, res) => {
   try {
     const { groupId } = req.params;
     const { content, isGlobal } = req.body; // isGlobal: true for global message in group
-    const userId = req.user.id;
-
+    const user = req.user;
     const message = new Message({
-      sender: userId,
+      sender: user.id,
       content,
       group: groupId,
       isGlobal: isGlobal || false,
     });
-    await message.save();
-
-    // Add message to group's messages
-    const group = await Group.findById(groupId);
-    group.messages.push(message._id);
-    await group.save();
-
-    // Retrieve full sender details (username and avatar)
-    const senderDetails = await User.findById(userId).select("username avatar");
-
-    // Emit to group room with sender details included
     req.io.to(groupId).emit("newGroupMessage", {
       _id: message._id,
-      sender: senderDetails, // updated: full user details rather than just id
+      sender: { _id: user.id, username: user.username, avatar: user.avatar }, // updated: full user details rather than just id
       content,
       isGlobal: message.isGlobal,
-      createdAt: message.createdAt,
+      createdAt: new Date(),
       group: groupId,
     });
-
+    const group = await Group.findById(groupId);
+    group.messages.push(message._id);
+    message.save();
+    group.save();
     res.json(message);
   } catch (error) {
     res.status(500).json({ message: "Error sending message", error });
@@ -388,13 +376,12 @@ export const deleteGroupMessage = async (req, res) => {
     const { groupId, messageId } = req.params;
     const userId = req.user.id;
 
+    req.io.to(groupId).emit("deleteGroupMessage", messageId);
     const message = await Message.findById(messageId);
     if (!message) return res.status(404).json({ message: "Message not found" });
     if (message.sender.toString() !== userId)
       return res.status(403).json({ message: "Unauthorized" });
-
     await message.deleteOne();
-    req.io.to(groupId).emit("deleteGroupMessage", messageId);
     res.json({ message: "Message deleted successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error deleting message", error });

@@ -50,22 +50,21 @@ export const sendMessage = async (req, res) => {
     const userId = req.user.id;
 
     const message = new Message({ sender: userId, content, chat: chatId });
-    await message.save();
 
     const chat = await Chat.findById(chatId);
     chat.messages.push(message._id);
-    await chat.save();
 
     // Emit to specific chat room with detailed sender info (id and avatar)
     const newMessage = {
       _id: message._id,
       sender: { _id: userId, avatar: req.user.avatar },
       content,
-      createdAt: message.createdAt,
+      createdAt: new Date(),
       chat: chatId,
     };
     req.io.to(chatId).emit("newMessage", newMessage);
-
+    message.save();
+    chat.save();
     res.json(newMessage); // Return the new message object
   } catch (error) {
     res.status(500).json({ message: "Error sending message", error });
@@ -252,6 +251,7 @@ export const deleteMessage = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized" });
     }
 
+    req.io.to(chatId).emit("deleteMessage", messageId);
     // Delete the message
     await message.deleteOne();
 
@@ -263,7 +263,6 @@ export const deleteMessage = async (req, res) => {
     }
 
     // Emit event after successful deletion
-    req.io.to(chatId).emit("deleteMessage", messageId);
 
     res.json({ message: "Message deleted successfully" });
   } catch (error) {

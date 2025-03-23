@@ -56,6 +56,7 @@ const ChatContainer = ({
 
   useEffect(() => {
     scrollToBottom();
+    if (selectedGroup) setIsAdmin(selectedGroup.admins?.includes(authUser._id));
   }, [messages]);
 
   useEffect(() => {
@@ -71,8 +72,12 @@ const ChatContainer = ({
 
     if (selectedGroup) {
       socket.on("newGroupMessage", handleNewMessage);
+      socket.on("deleteGroupMessage", (messageId) => {
+        setMessages((prevMessages) =>
+          prevMessages.filter((msg) => msg._id !== messageId)
+        );
+      });
     }
-
     return () => {
       if (selectedGroup) {
         socket.off("newGroupMessage", handleNewMessage);
@@ -87,9 +92,6 @@ const ChatContainer = ({
         .catch((error) =>
           console.error("Error fetching pinned messages:", error)
         );
-
-      // Check if user is admin
-      setIsAdmin(selectedGroup.admins?.includes(authUser._id));
     }
   }, [selectedGroup]);
 

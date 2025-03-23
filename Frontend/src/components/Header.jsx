@@ -519,6 +519,16 @@ const Header = () => {
                   Chats
                 </Link>
               </li>
+              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
+                <Link to="/mentors" className="nav-link">
+                  Mentors
+                </Link>
+              </li>
+              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
+                <Link to="/marketplace" className="nav-link">
+                  Market
+                </Link>
+              </li>
             </ul>
           </div>
           <div className="flex items-center space-x-4">

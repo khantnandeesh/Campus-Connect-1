@@ -12,6 +12,7 @@ const ChatPage = () => {
   const [messages, setMessages] = useState([]);
   const [isMessagesLoading, setIsMessagesLoading] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState([]);
+
   const [authUser, setAuthUser] = useState({
     _id: "authUserId",
     profilePic: "/avatar.png",
@@ -27,7 +28,6 @@ const ChatPage = () => {
         return prevMessages;
       });
     });
-
     socket.on("deleteMessage", (messageId) => {
       setMessages((prevMessages) =>
         prevMessages.filter((msg) => msg._id !== messageId)
@@ -44,6 +44,7 @@ const ChatPage = () => {
     if (selectedUser) {
       const loggedInUser = JSON.parse(localStorage.getItem("user"));
       setAuthUser(loggedInUser);
+
       setIsMessagesLoading(true);
       getUserChats(selectedUser._id)
         .then((chats) => {
@@ -65,7 +66,8 @@ const ChatPage = () => {
     if (selectedGroup) {
       setIsMessagesLoading(true);
       console.log(selectedGroup);
-
+      const loggedInUser = JSON.parse(localStorage.getItem("user"));
+      setAuthUser(loggedInUser);
       getGroupChats(selectedGroup._id)
         .then((groupMessages) => {
           groupSocket.emit("joinGroupRoom", selectedGroup._id); // Use group socket

@@ -18,6 +18,7 @@ import http from "http";
 import StudyRoom from "./models/room.model.js";
 import groupRoutes from "./routes/groupChat.routes.js";
 import cloudinary from "./config/cloudinary.js"; // Ensure Cloudinary is imported
+import { log } from "console";
 dotenv.config();
 
 const app = express();
@@ -62,7 +63,7 @@ app.use((req, res, next) => {
 // Socket.io Events
 io.on("connection", (socket) => {
   // console.log("User connected:", socket.id);
-
+  console.log("User connected:", socket.id);
   // Handle user online status
   socket.on("user-online", (userId) => {
     users.set(userId, socket.id);
@@ -71,6 +72,7 @@ io.on("connection", (socket) => {
   });
 
   socket.on("disconnect", () => {
+    log("User disconnected:", socket.id);
     if (socket.userId) {
       users.delete(socket.userId);
       io.emit("online-users", Array.from(users.keys()));
