@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { loginSuccess } from '../redux/authslice';
+import { useDispatch } from 'react-redux';
 
 const Login = () => {
   const [username, setUsername] = useState('');
@@ -9,7 +11,9 @@ const Login = () => {
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false); // Loading state
   const [error, setError] = useState('');
+
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   const handleUsernameChange = (e) => setUsername(e.target.value);
   const handlePasswordChange = (e) => setPassword(e.target.value);
@@ -45,7 +49,7 @@ const Login = () => {
         { withCredentials: true }
       );
       if (response.status === 200) {
-        localStorage.setItem('authToken', response.data.token);
+        dispatch(loginSuccess(response.data));
         navigate('/dashboard');
       }
     } catch (error) {

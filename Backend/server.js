@@ -10,6 +10,8 @@ import dotenv from "dotenv";
 import questionRoutes from "./routes/question.routes.js";
 import answerRoutes from "./routes/answer.routes.js";
 import roomRoutes from "./routes/room.routes.js";
+import marketplaceRoutes from "./routes/marketplace.routes.js";
+import marketChatRoutes from "./routes/chat.marketplace.routes.js";
 import userRoutes from "./routes/user.routes.js";
 import uploadRoutes from "./routes/upload.routes.js";
 import chatRoutes from "./routes/chat.personal.routes.js"; // Import chat routes
@@ -180,6 +182,45 @@ io.on("connection", (socket) => {
         console.error("Stop timer error:", err);
       }
     });
+
+    socket.on("toggleMode", async ({ roomId, mode, duration }) => {
+      try {
+        const room = await StudyRoom.findOne({ roomId });
+        if (!room) return;
+
+        room.timer.isRunning = false;
+        room.timer.mode = mode;
+        room.timer.duration = duration;
+        room.timer.timeLeft = duration;
+
+        await room.save();
+        io.to(roomId).emit("timerUpdated", room.timer);
+      } catch (err) {
+        console.error("Mode toggle error:", err);
+      }
+    });
+  };
+
+  // Chat Events for direct messaging between buyer and seller
+  const handleMarketChatEvents = () => {
+    socket.on("joinChat", ({ buyerId, sellerId }) => {
+      // Create a consistent room name by sorting the IDs
+      const chatRoom = [buyerId, sellerId].sort().join("-");
+      socket.join(chatRoom);
+      console.log(`User joined chat: ${chatRoom}`);
+    });
+
+    socket.on("join", (userId) => {
+      socket.join(userId); // User joins their own room (userId)
+      console.log(`User ${userId} joined their personal room`);
+    });
+
+    socket.on("sendMessage", (message) => {
+      const { senderId, receiverId } = message;
+      // Use the same room naming strategy
+      const chatRoom = [senderId, receiverId].sort().join("-");
+      io.to(chatRoom).emit("receiveMessage", message);
+    });
   };
 
   // Question/Answer Events (existing functionality)
@@ -276,6 +317,7 @@ io.on("connection", (socket) => {
   handleStudyRoomEvents();
   handleQnAEvents();
   handleChatEvents();
+  handleMarketChatEvents();
 
   socket.on("disconnect", () => {
     // console.log("User disconnected:", socket.id);
@@ -292,6 +334,8 @@ app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
 app.use("/api/answers", answerRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/marketplace", marketplaceRoutes);
+app.use("/api/chat", marketChatRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/upload", uploadRoutes);
 app.use("/api/chats", chatRoutes); // Add chat routes
