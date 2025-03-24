@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
+import { useSetRecoilState } from 'recoil';
+import { userState } from '../atoms/userAtoms';
 import { loginSuccess } from '../redux/authslice';
 import { useDispatch } from 'react-redux';
 
@@ -13,6 +15,7 @@ const Login = () => {
   const [error, setError] = useState('');
 
   const navigate = useNavigate();
+  const setUser = useSetRecoilState(userState);
   const dispatch = useDispatch();
 
   const handleUsernameChange = (e) => setUsername(e.target.value);
@@ -53,6 +56,7 @@ const Login = () => {
         navigate('/dashboard');
       }
     } catch (error) {
+      console.log(error);
       setError(error.response ? error.response.data.message : 'An error occurred');
     } finally {
       setLoading(false); // Set loading to false after the request finishes

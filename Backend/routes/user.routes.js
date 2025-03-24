@@ -10,6 +10,8 @@ import {
   getFriendRequests,
   updateAvatar,
   removeFriend,
+  searchMentorUsers,
+  getUserById
 } from "../controllers/user.controller.js";
 import protectRoute from "../middlewares/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
@@ -26,5 +28,7 @@ router.post("/accept-request/:id", protectRoute, acceptFriendRequest);
 router.post("/reject-request/:id", protectRoute, rejectFriendRequest);
 router.put("/avatar/:id", protectRoute, uploadMiddleware, updateAvatar);
 router.post("/remove-friend/:id", protectRoute, removeFriend);
+router.get("/search", protectRoute, searchMentorUsers);
+router.get("/:userId", protectRoute, getUserById);
 
 export default router;

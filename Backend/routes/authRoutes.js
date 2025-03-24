@@ -4,7 +4,8 @@ import jwt from "jsonwebtoken";
 import nodemailer from "nodemailer";
 import User from "../models/user.model.js";
 import CollegeDomain from "../models/collegeDomain.js";
-
+import authMiddleware from "../middleware/authMiddleware.js";
+import Chat from "../models/chat.model.js";
 const router = express.Router();
 let otpStore = {};
 
@@ -14,8 +15,8 @@ const transporter = nodemailer.createTransport({
   port: 465,
   auth: {
     user: process.env.EMAIL_USER,
-    pass: "uzed ejob wfrv ylgd",
-  },
+    pass: "uzed ejob wfrv ylgd"
+  }
 });
 
 function generateOTP() {
@@ -30,7 +31,7 @@ async function sendEmailWithRetries({ to, subject, text }, maxAttempts = 3) {
         from: process.env.EMAIL_USER,
         to,
         subject,
-        text,
+        text
       });
       console.log(`Email sent to: ${to} on attempt ${attempts + 1}`);
       return true;
@@ -83,7 +84,7 @@ router.post("/signup", async (req, res) => {
     const emailSent = await sendEmailWithRetries({
       to: email,
       subject: "Email Verification OTP",
-      text: `Your OTP is: ${otp}`,
+      text: `Your OTP is: ${otp}`
     });
 
     if (!emailSent) {
@@ -117,7 +118,7 @@ router.post("/verify-signup", async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collegename,
+      collegename
     });
 
     await newUser.save();
@@ -146,12 +147,13 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    const otp = generateOTP();
+    const otp = "111111"; //only for testing till development remind me to remove this after development
     const emailSent = await sendEmailWithRetries({
       to: user.email,
       subject: "Login OTP Verification",
-      text: `Your OTP is: ${otp}`,
+      text: `Your OTP is: ${otp}`
     });
+    console.log("email sent with otp " + otp + "to email " + user.email);
 
     if (!emailSent) {
       return res
@@ -180,7 +182,7 @@ router.post("/verify-signup", async (req, res) => {
       username,
       password: hashedPassword,
       email,
-      collegename,
+      collegename
     });
 
     await newUser.save();
@@ -252,6 +254,47 @@ router.get("/dashboard", authenticateUser, async (req, res) => {
     res.status(200).json({ message: "Welcome to the dashboard", user });
   } catch (error) {
     res.status(500).json({ message: "Error loading dashboard", error });
+  }
+});
+
+// Get current user data
+router.get("/me", authMiddleware, async (req, res) => {
+  try {
+    console.log("hit me" + req.user);
+    const user = await User.findById(req.user._id).select("-password");
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching user data", error });
+  }
+});
+
+// Get mentor chat list
+router.get("/mentor/chats", authMiddleware, async (req, res) => {
+  try {
+    // Check if user is a mentor
+    const mentorApplication = await MentorApplication.findOne({
+      studentId: req.user._id,
+      status: "approved"
+    });
+
+    if (!mentorApplication) {
+      return res
+        .status(403)
+        .json({ message: "Only mentors can access this route" });
+    }
+
+    // Use the findAllParticipants function to get chat details
+    // Yes, findAllParticipants returns array of {_id, message} objects that we can send directly
+    const chats = await Chat.findAllParticipants(req.user._id);
+
+   
+
+    res.json(chats);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching chat list", error });
   }
 });
 
