@@ -99,10 +99,7 @@ io.on("connection", (socket) => {
       }
     });
 
-    socket.on("setDuration", async ({ roomId, duration }) => {
-
-    
-    socket.on("setDuration", async ({ roomId, duration,mode }) => {
+    socket.on("setDuration", async ({ roomId, duration, mode }) => {
       try {
         const room = await StudyRoom.findOne({ roomId });
         if (!room) return;
@@ -111,10 +108,8 @@ io.on("connection", (socket) => {
         if (!room.timer.isRunning) {
           room.timer.timeLeft = duration;
         }
+        room.timer.mode = mode;
 
-        room.timer.timeLeft = duration;
-      room.timer.mode = mode;
-        
         await room.save();
         io.to(roomId).emit("timerUpdated", room.timer);
       } catch (err) {
