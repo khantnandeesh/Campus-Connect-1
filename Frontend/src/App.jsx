@@ -22,11 +22,33 @@ import MyListings from "./pages/MyListings";
 import SellerChatPage from "./pages/SellerChatPage";
 import ChatInbox from "./pages/ChatInbox";
 import MyOrders from "./pages/MyOrders";
+import MentorApplicationForm from './components/MentorApplicationForm';
+import AdminDashboard from './components/AdminDashboard';
+import AdminLogin from './components/AdminLogin';
+import ForwardAdmin from './components/ForwardAdmin';
+import Applications from './components/Applications';
+import { RecoilRoot } from 'recoil';
+import MentorList from './components/MentorList';
+import Chat from './pages/Chat';
+import WebSocketProvider from './components/WebSocketProvider';
+import FindUsers from './pages/FindUsers';
 
+// Protected Route Component
+const ProtectedAdminRoute = ({ children }) => {
+  const adminInfo = JSON.parse(localStorage.getItem('adminInfo'));
+
+  if (!adminInfo) {
+    return <Navigate to="/admin/login" />;
+  }
+
+  return children;
+};
 const App = () => {
   const user = useSelector((state) => state.auth.user);
 
   return (
+    <RecoilRoot>
+      <WebSocketProvider>
     <Router>
       <Routes>
         <Route path="/" element={<Signup />} />
@@ -50,11 +72,43 @@ const App = () => {
           <Route path="/marketplace/orders" element={<MyOrders />} />
           <Route path="/chat/:sellerId" element={<SellerChatPage />} />
           <Route path="/chat/inbox" element={<ChatInbox />} />
+          <Route path="/mentor-application" element={<MentorApplicationForm />} />
+            <Route path="/chat/:userId/:receiverId" element={<Chat />} />
+            <Route path="/find-users/:userId" element={<FindUsers />} />
+            <Route path="/mentors" element={<MentorList />} />
         </Route>
+         {/* Admin Routes */}
+         <Route path="/admin/login" element={<AdminLogin />} />
+            <Route
+              path="/admin/dashboard"
+              element={
+                <ProtectedAdminRoute>
+                  <AdminDashboard />
+                </ProtectedAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/applications"
+              element={
+                <ProtectedAdminRoute>
+                  <Applications />
+                </ProtectedAdminRoute>
+              }
+            />
+            <Route
+              path="/admin/forward-admin"
+              element={
+                <ProtectedAdminRoute>
+                  <ForwardAdmin />
+                </ProtectedAdminRoute>
+              }
+            />
         <Route path="/signup" element={<Signup />} />
         <Route path="/login" element={<Login />} />
       </Routes>
     </Router>
+      </WebSocketProvider>
+      </RecoilRoot>
   );
 };
 

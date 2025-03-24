@@ -9,7 +9,7 @@ import {
   updateTask,
   deleteTask,
 } from "../controllers/room.controller.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 
 const router = express.Router();
 

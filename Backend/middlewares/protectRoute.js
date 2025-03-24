@@ -72,7 +72,6 @@ const protectRoute = async (req, res, next) => {
     // Add user information from token to the request
     req.user = {
       ...user.toObject(),
-      id: user._id,
       isAdmin: decoded.isAdmin || false,
       adminCode: decoded.adminCode,
       college: decoded.college,

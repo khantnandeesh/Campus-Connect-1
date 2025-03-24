@@ -37,9 +37,12 @@ const SellerChatPage = () => {
 
     const fetchChat = async () => {
       try {
-        const response = await axios.get(`${SERVER_URL}/api/chat/${sellerId}`, {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `${SERVER_URL}/api/chatMarket/${sellerId}`,
+          {
+            withCredentials: true,
+          }
+        );
         if (response.data && response.data._id) {
           setChat(response.data);
           setMessages(response.data.messages);
@@ -65,7 +68,7 @@ const SellerChatPage = () => {
     if (chat && chat._id && userId) {
       axios
         .put(
-          `${SERVER_URL}/api/chat/mark-read`,
+          `${SERVER_URL}/api/chatMarket/mark-read`,
           { chatId: chat._id },
           { withCredentials: true }
         )
@@ -98,7 +101,7 @@ const SellerChatPage = () => {
     };
 
     try {
-      await axios.post(`${SERVER_URL}/api/chat/send`, messageData, {
+      await axios.post(`${SERVER_URL}/api/chatMarket/send`, messageData, {
         withCredentials: true,
       });
       socket.current.emit("sendMessage", messageData);
@@ -137,12 +140,16 @@ const SellerChatPage = () => {
               <div
                 key={index}
                 className={`flex ${
-                  msg.senderId.toString() === userId.toString() ? "justify-end" : "justify-start"
+                  msg.senderId.toString() === userId.toString()
+                    ? "justify-end"
+                    : "justify-start"
                 }`}
               >
                 <div
                   className={`p-3 rounded-xl max-w-[75%] shadow-md text-white ${
-                    msg.senderId.toString() === userId.toString() ? "bg-blue-600" : "bg-gray-700"
+                    msg.senderId.toString() === userId.toString()
+                      ? "bg-blue-600"
+                      : "bg-gray-700"
                   }`}
                 >
                   {msg.text}

@@ -29,7 +29,7 @@ import {
   votePoll, // new: vote poll
   getGroupPolls, // new: get group polls
 } from "../controllers/group.controller.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
 import {
   createAnnouncement, // new: create announcement

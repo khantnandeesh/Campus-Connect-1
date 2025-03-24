@@ -9,7 +9,7 @@ import {
   getUserFriends,
   deleteMessage, // Import deleteMessage
 } from "../controllers/chat.personal.controller.js";
-import protectRoute from "../middlewares/protectRoute.js";
+import protectRoute from "../middleware/protectRoute.js";
 import { uploadMiddleware } from "../controllers/upload.controller.js";
 
 const router = express.Router();

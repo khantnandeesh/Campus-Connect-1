@@ -70,7 +70,7 @@ const MentorList = () => {
 
     return (
         <>
-            <MentorshipNavbar isDarkMode={isDarkMode} />
+            {/* <MentorshipNavbar isDarkMode={isDarkMode} /> */}
             <div className={`min-h-screen ${isDarkMode ? 'bg-black' : 'bg-gray-50'} pt-20 px-4`}>
                 <div className="max-w-4xl mx-auto">
                     <div className="mb-6">

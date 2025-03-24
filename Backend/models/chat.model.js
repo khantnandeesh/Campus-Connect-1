@@ -4,20 +4,20 @@ const messageSchema = new mongoose.Schema({
   sender: {
     type: mongoose.Schema.Types.ObjectId,
     ref: "User",
-    required: true
+    required: true,
   },
   content: {
     type: String,
-    required: true
+    required: true,
   },
   isMedia: {
     type: Boolean,
-    default: false
+    default: false,
   },
   timestamp: {
     type: Date,
-    default: Date.now
-  }
+    default: Date.now,
+  },
 });
 
 const chatSchema = new mongoose.Schema(
@@ -26,17 +26,17 @@ const chatSchema = new mongoose.Schema(
       {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
-        required: true
-      }
+        required: true,
+      },
     ],
     messages: [messageSchema],
     lastMessage: {
       type: Date,
-      default: Date.now
-    }
+      default: Date.now,
+    },
   },
   {
-    timestamps: true
+    timestamps: true,
   }
 );
 
@@ -44,6 +44,6 @@ const chatSchema = new mongoose.Schema(
 chatSchema.index({ participants: 1 });
 chatSchema.index({ lastMessage: -1 });
 
-const Chat = mongoose.model("Chat", chatSchema);
+const Chat = mongoose.model("ChatMentor", chatSchema);
 
 export default Chat;

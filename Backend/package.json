@@ -1,11 +1,13 @@
 {
   "dependencies": {
     "@solana/web3.js": "^1.98.0",
+    "asynckit": "^0.4.0",
     "axios": "^1.8.2",
     "bcryptjs": "^2.4.3",
     "body-parser": "^1.20.3",
     "bs58": "^6.0.0",
     "cloudinary": "^1.41.3",
+    "combined-stream": "^1.0.8",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^16.4.7",
@@ -19,9 +21,8 @@
     "nodemailer": "^6.9.16",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.1",
-    "ws": "^8.18.1",
     "uuid": "^11.0.5",
-    "combined-stream": "^1.0.8"
+    "ws": "^8.18.1"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

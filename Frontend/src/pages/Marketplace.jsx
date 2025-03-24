@@ -18,9 +18,13 @@ const Marketplace = () => {
   useEffect(() => {
     const fetchProducts = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/marketplace/products");
+        const response = await axios.get(
+          "http://localhost:3000/api/marketplace/products"
+        );
         setProducts(response.data);
-        const uniqueCategories = [...new Set(response.data.map((product) => product.category))];
+        const uniqueCategories = [
+          ...new Set(response.data.map((product) => product.category)),
+        ];
         setCategories(uniqueCategories);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -37,9 +41,12 @@ const Marketplace = () => {
     if (!userId) return;
     const fetchUnreadCount = async () => {
       try {
-        const response = await axios.get(`http://localhost:3000/api/chat/inbox?userId=${userId}`, {
-          withCredentials: true,
-        });
+        const response = await axios.get(
+          `http://localhost:3000/api/chatMarket/inbox?userId=${userId}`,
+          {
+            withCredentials: true,
+          }
+        );
         // Sum up unread counts from each chat
         const totalUnread = response.data.reduce(
           (acc, chat) => acc + (chat.unreadCount || 0),
@@ -55,12 +62,15 @@ const Marketplace = () => {
   }, [userId]);
 
   const filteredProducts = products
-    .filter((product) => product.title.toLowerCase().includes(search.toLowerCase()))
+    .filter((product) =>
+      product.title.toLowerCase().includes(search.toLowerCase())
+    )
     .filter((product) => (category ? product.category === category : true))
     .sort((a, b) => {
       if (sort === "low-high") return a.price - b.price;
       if (sort === "high-low") return b.price - a.price;
-      if (sort === "newest") return new Date(b.createdAt) - new Date(a.createdAt);
+      if (sort === "newest")
+        return new Date(b.createdAt) - new Date(a.createdAt);
       return 0;
     });
 
@@ -154,9 +164,15 @@ const Marketplace = () => {
               className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform"
             >
               <Link to={`/marketplace/${product._id}`} className="block">
-                <img src={product.images[0]} alt={product.title} className="w-full h-48 object-cover rounded-lg" />
+                <img
+                  src={product.images[0]}
+                  alt={product.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
                 <h3 className="text-xl font-medium mt-3">{product.title}</h3>
-                <p className="text-green-400 text-lg font-semibold">₹{product.price}</p>
+                <p className="text-green-400 text-lg font-semibold">
+                  ₹{product.price}
+                </p>
               </Link>
             </div>
           ))}

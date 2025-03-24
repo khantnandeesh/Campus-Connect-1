@@ -19,12 +19,12 @@ import chatRoutes from "./routes/chat.personal.routes.js"; // Import chat routes
 import { Server } from "socket.io";
 import http from "http";
 import adminRoutes from "./routes/adminRoutes.js";
-import userRoutes from "./routes/user.routes.js";
-import chatRoutes from "./routes/chat.routes.js";
+import chatMentorRoutes from "./routes/chat.routes.js";
 import meetingRoutes from "./routes/meeting.routes.js";
 import Meeting from "./models/meeting.model.js";
 import User from "./models/user.model.js";
-import { sendMeetingLinkEmail } from "./utils/emailUtils.js";import StudyRoom from "./models/room.model.js";
+import { sendMeetingLinkEmail } from "./utils/emailUtils.js";
+import StudyRoom from "./models/room.model.js";
 import groupRoutes from "./routes/groupChat.routes.js";
 import cloudinary from "./config/cloudinary.js"; // Ensure Cloudinary is imported
 import { log } from "console";
@@ -58,7 +58,7 @@ app.use(
     origin: "http://localhost:5173",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
-    allowedHeaders: ["Content-Type", "Authorization"]
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 
@@ -336,8 +336,6 @@ io.on("connection", (socket) => {
   });
 });
 
-connectDB();
-
 app.use("/auth", authRoutes);
 app.use("/college", collegeRoutes);
 app.use("/api/questions", questionRoutes);
@@ -345,71 +343,52 @@ app.use("/api/answers", answerRoutes);
 app.use("/api/mentors", mentorRoutes);
 app.use("/api/mentor", mentorRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/chat", chatRoutes);
+app.use("/api/chat", chatMentorRoutes);
 app.use("/api/meetings", meetingRoutes);
-
-// Error handling middleware
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({ message: "Something went wrong!" });
-});
-
-connectDB();
 app.use("/api/rooms", roomRoutes);
 app.use("/api/marketplace", marketplaceRoutes);
-app.use("/api/chat", marketChatRoutes);
 app.use("/api/users", userRoutes);
+app.use("/api/chatMarket", marketChatRoutes);
 app.use("/api/upload", uploadRoutes);
-app.use("/api/chats", chatRoutes); // Add chat routes
-app.use("/api/groups", groupRoutes); // Add chat routes
-
+app.use("/api/chats", chatRoutes);
+app.use("/api/groups", groupRoutes);
+connectDB();
 // Start Server
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
 
+//send email 24 hrs after
 
+let enter = true;
 
+setInterval(async () => {
+  console.log("enter ing");
 
-
-//send email 24 hrs after 
-
-let enter =true;
-
-
-
-setInterval(async()=>{
-  console.log(("enter ing"));
-  
-  if(enter){
-    let meetings = await Meeting.find({status:"approved"});
-    meetings.forEach(async (meeting) => {``
+  if (enter) {
+    let meetings = await Meeting.find({ status: "approved" });
+    meetings.forEach(async (meeting) => {
+      ``;
       let now = new Date();
       let meetingDate = new Date(meeting.date);
       console.log(meetingDate.getDate());
-      
-      if (meetingDate.getDate() == now.getDate()  ) {
-        let senderid=meeting.senderId;
-        let receiverid=meeting.receiverId;
-        let senderEmail=await User.findById(senderid).select("email");  
-        let receiverEmail=await User.findById(receiverid).select("email");
-  
-        let message=JSON.stringify(meeting);
-        let arr=new TextEncoder().encode(message);
-        let roomCode=Buffer.from(arr).toString("base64")
-        
-  
-       
-        let senderMeetingLink=roomCode;
-        let receiverMeetingLink=roomCode;
+
+      if (meetingDate.getDate() == now.getDate()) {
+        let senderid = meeting.senderId;
+        let receiverid = meeting.receiverId;
+        let senderEmail = await User.findById(senderid).select("email");
+        let receiverEmail = await User.findById(receiverid).select("email");
+
+        let message = JSON.stringify(meeting);
+        let arr = new TextEncoder().encode(message);
+        let roomCode = Buffer.from(arr).toString("base64");
+
+        let senderMeetingLink = roomCode;
+        let receiverMeetingLink = roomCode;
         await sendMeetingLinkEmail(senderMeetingLink, senderEmail);
-         await sendMeetingLinkEmail(receiverMeetingLink, receiverEmail);
-        
-        
+        await sendMeetingLinkEmail(receiverMeetingLink, receiverEmail);
       }
     });
   }
- 
-},24*60*60*1000);
+}, 24 * 60 * 60 * 1000);
