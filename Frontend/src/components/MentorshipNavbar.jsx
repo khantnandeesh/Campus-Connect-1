@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import axios from 'axios';
@@ -7,6 +7,21 @@ const MentorshipNavbar = ({ isDarkMode }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const isAdmin = localStorage.getItem('adminInfo');
+    const [userId, setUserId] = useState(null);
+
+    useEffect(() => {
+        const fetchUser = async () => {
+            try {
+                const response = await axios.get("http://localhost:3000/auth/dashboard", {
+                    withCredentials: true,
+                });
+                setUserId(response.data.user._id);
+            } catch (error) {
+                console.error('Error fetching user:', error);
+            }
+        };
+        fetchUser();
+    }, []);
 
     const handleSignOut = async () => {
         try {
@@ -14,7 +29,6 @@ const MentorshipNavbar = ({ isDarkMode }) => {
                 await axios.post('/api/admin/signout');
                 navigate('/admin/login');
             } else {
-                
                 navigate('/');
             }
         } catch (error) {
@@ -95,13 +109,31 @@ const MentorshipNavbar = ({ isDarkMode }) => {
                                         >
                                             Application Status
                                         </Link>
+                                        {userId && (
+                                            <Link
+                                                to={`/find-users/${userId}`}
+                                                className={`inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${location.pathname.startsWith('/find-users') ? 'border-green-500 text-green-500' : 'border-transparent hover:border-green-300'}`}
+                                            >
+                                                Chat
+                                            </Link>
+                                        )}
                                     </>
                                 )}
                             </div>
                         </div>
 
                         {/* Right side buttons */}
-                        <div className="flex items-center">
+                        <div className="flex items-center space-x-4">
+                            {!isAdmin && userId && (
+                                <motion.button
+                                    onClick={() => navigate(`/find-users/${userId}`)}
+                                    className={`px-4 py-2 rounded-lg ${isDarkMode ? 'bg-green-600 hover:bg-green-700' : 'bg-green-500 hover:bg-green-600'} text-white transition-colors`}
+                                    whileHover={{ scale: 1.05 }}
+                                    whileTap={{ scale: 0.95 }}
+                                >
+                                    Chat
+                                </motion.button>
+                            )}
                             <motion.button
                                 onClick={handleSignOut}
                                 className={`px-4 py-2 rounded-lg ${isDarkMode
@@ -170,6 +202,14 @@ const MentorshipNavbar = ({ isDarkMode }) => {
                                 >
                                     Application Status
                                 </Link>
+                                {userId && (
+                                    <Link
+                                        to={`/find-users/${userId}`}
+                                        className={`block px-3 py-2 text-base font-medium ${location.pathname.startsWith('/find-users') ? 'bg-green-500 text-white' : `${isDarkMode ? 'hover:bg-gray-700' : 'hover:bg-gray-100'}`}`}
+                                    >
+                                        Chat
+                                    </Link>
+                                )}
                             </>
                         )}
                     </div>

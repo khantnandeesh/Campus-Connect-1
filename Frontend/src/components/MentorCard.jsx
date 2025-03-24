@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+
 import ReactStars from "react-rating-stars-component";
 import axios from 'axios';
 import { useRecoilValue } from 'recoil';
@@ -15,6 +15,7 @@ const MentorCard = ({ mentor, isDarkMode }) => {
     const [stars, setStars] = useState(mentor.stars);
     const [ws, setWs] = useState(null);
     const [isOnline, setIsOnline] = useState(false);
+    let [id, setId] = useState(null);
     let interval=useRef(null);
     useEffect(() => {
         let id=null;
@@ -23,7 +24,7 @@ const MentorCard = ({ mentor, isDarkMode }) => {
             withCredentials: true,
         }).then((response) => {
             id=response.data.user.id;
-           
+            setId(id);
 
             const ws = new WebSocket("ws://localhost:3001");
             wsCopy=ws;
@@ -70,7 +71,9 @@ const MentorCard = ({ mentor, isDarkMode }) => {
     }, []);
 
     const handleChatClick = () => {
-        navigate(`/chat/${mentor._id}`);
+        if(id!=null){
+            navigate(`/chat/${id}/${mentor._id}`);
+        }
     };
 
     const handleRatingChange = async (newRating) => {

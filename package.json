@@ -1,7 +1,0 @@
-{
-  "dependencies": {
-    "express-async-handler": "^1.2.0",
-    "react-rating-stars-component": "^2.2.0",
-    "ws": "^8.18.1"
-  }
-}

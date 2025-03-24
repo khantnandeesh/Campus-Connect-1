@@ -5,7 +5,8 @@ const userSchema = new mongoose.Schema({
   username: { type: String, unique: true, required: true },
   password: { type: String, required: true },
   email: { type: String, unique: true, required: true },
-  collegename: { type: String, required: true }
+  collegename: { type: String, required: true },
+  avatar:{type:String}
 });
 
 // Add method to compare password

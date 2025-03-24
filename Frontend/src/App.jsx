@@ -12,11 +12,9 @@ import ForwardAdmin from './components/ForwardAdmin';
 import Applications from './components/Applications';
 import { RecoilRoot } from 'recoil';
 import MentorList from './components/MentorList';
-import Chat from './components/Chat';
+import Chat from './pages/Chat';
 import WebSocketProvider from './components/WebSocketProvider';
-import MentorChatList from './components/MentorChatList';
-import Room from "./pages/Room";
-import StudyRoom from "./pages/StudyRoom";
+import FindUsers from './pages/FindUsers';
 
 // Protected Route Component
 const ProtectedAdminRoute = ({ children }) => {
@@ -42,6 +40,8 @@ const App = () => {
             <Route path="/doubts" element={<DoubtsPage />} />
             <Route path="/questions/:questionId" element={<QuestionDetail />} />
             <Route path="/mentor-application" element={<MentorApplicationForm />} />
+            <Route path="/chat/:userId/:receiverId" element={<Chat />} />
+            <Route path="/find-users/:userId" element={<FindUsers />} />
 
             {/* Admin Routes */}
             <Route path="/admin/login" element={<AdminLogin />} />
@@ -70,8 +70,6 @@ const App = () => {
               }
             />
             <Route path="/mentors" element={<MentorList />} />
-            <Route path="/chat/:mentorId" element={<Chat />} />
-            <Route path="/mentor/chats" element={<MentorChatList />} />
           </Routes>
         </Router>
       </WebSocketProvider>

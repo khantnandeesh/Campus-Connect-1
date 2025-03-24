@@ -1,109 +1,193 @@
-import { WebSocketServer } from "ws";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import User from "./models/user.model.js";
-import MentorApplication from "./models/MentorApplication.js";
+import { WebSocketServer, WebSocket } from "ws";
 import Chat from "./models/chat.model.js";
-dotenv.config();
 
 const wss = new WebSocketServer({ port: 3001 });
+const clients = new Map();
 
-// Store online users and their socket connections
-const onlineUsers = new Map(); 
+wss.on("connection", (ws) => {
+  let userId = null;
 
-// // Send ping to check active connections
-// setInterval(() => {
-//     for (const [userId, ws] of onlineUsers.entries()) {
-//         if (ws.readyState != ws.OPEN) {
-//             // Set a timeout to remove user if no pong received
-//             const timeout = setTimeout(() => {
-//                 if (onlineUsers.has(userId)) {
-//                     onlineUsers.delete(userId);
-//                     console.log(`Removed unresponsive user ${userId}`);
-//                 }
-//               }, 2000); // Wait 5 seconds for pong
-//               console.log("interval started");
-              
-//             // Send ping and handle pong response
-//             ws.send("ping");
-//            ws.on("message", (message) => {
-//             if (message === "pong") {
-//                 clearTimeout(timeout); // Clear timeout since user responded
-//             }
-//            });
-//         }
-//     }
-// }, 1000); // Check every 30 seconds
+  ws.on("message", async (message) => {
+    try {
+      const data = JSON.parse(message);
+      console.log("Received WebSocket message:", data);
 
+      switch (data.type) {
+        case "join":
+          userId = data.userId;
+          clients.set(userId, ws);
+          console.log(`User ${userId} joined the chat`);
+          // Broadcast user joined status
+          broadcastUserStatus(userId, true);
+          break;
 
+        case "message":
+          const { sender, receiver, content, isMedia } = data;
+          const newMessage = {
+            sender,
+            content,
+            isMedia: isMedia || false,
+            timestamp: new Date()
+          };
+          // Save to database
+           Chat.findOneAndUpdate(
+            { participants: { $all: [sender, receiver] } },
+            {
+              $push: { messages: newMessage },
+              $set: { lastMessage: new Date() }
+            },
+            { new: true }
+          );
 
+          // Send to receiver if online
+          const receiverWs = clients.get(receiver);
+          if (receiverWs && receiverWs.readyState === WebSocket.OPEN) {
+            console.log(`Sending message to receiver ${receiver}`);
+            receiverWs.send(
+              JSON.stringify({
+                type: "message",
+                sender,
+                content,
+                isMedia: isMedia || false,
+                timestamp: newMessage.timestamp
+              })
+            );
+          } else {
+            console.log(`Receiver ${receiver} is not online`);
+          }
+          break;
 
-wss.on("connection", async (ws) => {
-   
+        case "meeting_request":
+          const { meetingId, title, description, date, time } = data;
+          console.log(`Sending meeting request to receiver ${data.receiver}`);
 
-    console.log("Current online users:");
-   
-  
+          // Send to receiver if online
+          const receiverWsForMeeting = clients.get(data.receiver);
+          if (
+            receiverWsForMeeting &&
+            receiverWsForMeeting.readyState === WebSocket.OPEN
+          ) {
+            receiverWsForMeeting.send(
+              JSON.stringify({
+                type: "meeting_request",
+                sender: data.sender,
+                meetingId,
+                title,
+                description,
+                date,
+                time
+              })
+            );
+          } else {
+            console.log(
+              `Receiver ${data.receiver} is not online for meeting request`
+            );
+          }
+          break;
 
-    ws.on("message", async (message) => {
-        const data = JSON.parse(message);
-        const { type, content } = data;
-      console.log(data);
-      
-        if (type === "online") {
-          for (const [userId, socket] of onlineUsers.entries()) {
-            socket.send(JSON.stringify({ type: "get-statusR", content: { _id: userId} }));
-        }
+        case "meeting_response":
+          const { accepted } = data;
+          console.log(`Sending meeting response to receiver ${data.receiver}`);
 
-            const { _id } = content;
-            onlineUsers.set( _id, ws);
-            console.log(`User ${_id} logged in`);
-            ws.send(JSON.stringify({ type: "onlineR", content: { status: "online" } }));
-        } else if (type === "offline") {
-            const { _id } = content;
-            onlineUsers.delete(_id);
-            console.log(`User ${_id} logged out`);
-            ws.send(JSON.stringify({ type: "offlineR", content: { status: "offline" } }));
-        }
-        else if (type === "get-status") {
-            const { _id } = content;
-            const isOnline = onlineUsers.has(_id);
-            console.log("status requested" + _id + " " + isOnline);
+          // Send to receiver if online
+          const receiverWsForResponse = clients.get(data.receiver);
+          if (
+            receiverWsForResponse &&
+            receiverWsForResponse.readyState === WebSocket.OPEN
+          ) {
+            receiverWsForResponse.send(
+              JSON.stringify({
+                type: "meeting_response",
+                sender: data.sender,
+                meetingId: data.meetingId,
+                accepted
+              })
+            );
+          } else {
+            console.log(
+              `Receiver ${data.receiver} is not online for meeting response`
+            );
+          }
+          break;
 
+        case "typing":
+          const { userId: typingUserId, receiverId, isTyping } = data;
+          console.log(
+            `Typing status: User ${typingUserId} is ${
+              isTyping ? "typing" : "not typing"
+            } to ${receiverId}`
+          );
 
-            ws.send(JSON.stringify({ type: "get-statusR", content: { _id: _id, online: isOnline } }));
-        }
-        else if(type=='message'){
-            const { type, sender,receiver,data,timestamp } = content;
-            let senderSocket=onlineUsers.get(sender);
-            let receiverSocket=onlineUsers.get(receiver);
+          // Forward typing status to receiver
+          const receiverWsForTyping = clients.get(receiverId);
+          if (
+            receiverWsForTyping &&
+            receiverWsForTyping.readyState === WebSocket.OPEN
+          ) {
+            console.log(`Forwarding typing status to receiver ${receiverId}`);
+            receiverWsForTyping.send(
+              JSON.stringify({
+                type: "typing",
+                userId: typingUserId,
+                isTyping
+              })
+            );
+          } else {
+            console.log(
+              `Receiver ${receiverId} is not online for typing status`
+            );
+          }
+          break;
 
-            if(receiverSocket){
-                receiverSocket.send(JSON.stringify({ type: "messageR", content: { type, sender,data,timestamp } }));
-            }
-            let chat=new Chat({
-                participants:[sender,receiver],
-                messages:[{type,sender,data,timestamp}]
-            });
-             chat.save().then(()=>{
-                console.log("message saved");
-             }).catch((err)=>{
-                console.log(err);
-             });
-            
-        }
-    })
-    ws.onclose = () => {
-        console.log("Client disconnected");
-        const userId = Array.from(onlineUsers.keys()).find(id => onlineUsers.get(id) === ws);
-        if (userId) {
-            onlineUsers.delete(userId);
-            console.log(`User ${userId} logged out`);
-        }
+        case "heartbeat":
+          // Handle heartbeat to maintain connection
+          ws.send(JSON.stringify({ type: "heartbeat", status: "ok" }));
+          break;
+      }
+    } catch (error) {
+      console.error("WebSocket Error:", error);
+      ws.send(
+        JSON.stringify({
+          type: "error",
+          message: error.message
+        })
+      );
     }
-    
+  });
+
+  ws.on("close", () => {
+    if (userId) {
+      clients.delete(userId);
+      console.log(`User ${userId} left the chat`);
+      // Broadcast user left status
+      broadcastUserStatus(userId, false);
+    }
+  });
+
+  ws.on("error", (error) => {
+    console.error(`WebSocket error for user ${userId}:`, error);
+  });
 });
 
-wss.on("error", (error) => {
-    console.error("WebSocket server error:", error);
-});
+// Helper function to broadcast user status
+function broadcastUserStatus(userId, isOnline) {
+  const message = JSON.stringify({
+    type: "status",
+    userId,
+    isOnline
+  });
+
+  console.log(
+    `Broadcasting status: User ${userId} is ${isOnline ? "online" : "offline"}`
+  );
+
+  // Broadcast to all connected clients
+  clients.forEach((client, clientId) => {
+    if (client.readyState === WebSocket.OPEN) {
+      console.log(`Sending status to client ${clientId}`);
+      client.send(message);
+    }
+  });
+}
+
+console.log("WebSocket server running on port 3001");
