@@ -4,15 +4,49 @@ A platform for students to connect, collaborate, and manage academic activities.
 
 ---
 
+## Features
+
+### 1. Discussion Forum
+
+- A dynamic Q&A platform inspired by Stack Overflow and LeetCode discussions.
+- Users can:
+  - Post questions and provide answers.
+  - Upvote/downvote questions and answers.
+  - Reply to answers.
+  - Search questions by tags.
+  - Sort questions by category, most upvotes, or latest.
+  - Implement a pagination slider for reducing load on database.
+
+### 2. Chat System
+
+- Real-time messaging for seamless communication.
+- Features include:
+  - One-on-one chats and group chats (public or private).
+  - Group creation based on interest tags.
+  - Search and join public groups by tags.
+  - Media sharing enabled.
+  - Group-specific features:
+    - Poll creation.
+    - Pinned messages (admin-only).
+
+---
+
+## Screenshots
+
+<!-- Add screenshots of features below -->
+
+- Discussion Forum: ![Discussion Forum](./screenshots/discussion-forum.png)
+- Chat System: ![Chat System](./screenshots/chat-system.png)
+
+---
+
 ## Backend
 
 ### Steps
 
-1. **Add a ****`.env`**** file** and provide the following environment variables:
+1. **Add a `.env` file** and provide the following environment variables:
 
    ```env
-
-
    PORT="3000"
    MONGODB_URI="<Your MongoDB Connection String>"
    EMAIL_USER="<Your Email Address>"
@@ -51,6 +85,3 @@ A platform for students to connect, collaborate, and manage academic activities.
    ```
 
 ---
-
-
-
