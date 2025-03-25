@@ -97,16 +97,29 @@ export const getUserOrders = async (req, res) => {
   };
   
 
-
-// Get all products
 export const getAllProducts = async (req, res) => {
     try {
-        const products = await Product.find({ sold: false }).populate("sellerId", "username email");
-        res.json(products);
+      
+        const userCollege = req.user.collegename;
+      if (!userCollege) {
+        return res.status(400).json({ message: "User college not available" });
+      }
+      
+      const products = await Product.find({ sold: false })
+        .populate("sellerId", "username email collegename");
+      
+      const filteredProducts = products.filter(
+        (product) =>
+          product.sellerId &&
+          product.sellerId.collegename === userCollege
+      );
+      
+      res.json(filteredProducts);
     } catch (error) {
-        res.status(500).json({ message: "Error getting products" });
+      console.error("Error getting products:", error);
+      res.status(500).json({ message: "Error getting products" });
     }
-};
+  };
 
 // Get product by ID
 export const getProductById = async (req, res) => {

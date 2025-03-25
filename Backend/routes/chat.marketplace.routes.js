@@ -97,10 +97,12 @@ router.post("/send", protectRoute, async (req, res) => {
     };
 
     chat.messages.push(newMessage);
+    
     await chat.save();
-
     // Emit event to notify the receiver (sender's room should be managed via socket connection)
     req.io.to(receiverId.toString()).emit("newMessage", { chatId, senderId, text });
+
+    
 
     res.status(201).json(newMessage);
   } catch (error) {
