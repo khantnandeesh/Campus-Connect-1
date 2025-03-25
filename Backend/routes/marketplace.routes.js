@@ -12,7 +12,7 @@ router.get('/products/:id', protectRoute, getProductById);
 router.post('/products/', protectRoute, upload.array("images",5), createProduct);
 router.put("/products/:id", protectRoute, upload.array("images", 5), updateProduct);
 router.delete('/products/:id', protectRoute, deleteProduct);
-router.get("/wishlist/", protectRoute, getWishlist);
+router.get("/wishlist", protectRoute, getWishlist);
 router.post("/wishlist/:productId", protectRoute, addToWishlist);
 router.delete("/wishlist/:productId", protectRoute, removeFromWishlist);
 router.get("/my-listings", protectRoute, getMyListings);

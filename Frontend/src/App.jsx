@@ -5,23 +5,23 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import DoubtsPage from "./pages/Doubt";
 import QuestionDetail from "./pages/QuestionDetail";
-import Room from "./pages/Room";
-import StudyRoom from "./pages/StudyRoom";
+import Room from "./pages/VirtualRooms/Room";
+import StudyRoom from "./pages/VirtualRooms/StudyRoom";
 import UserProfile from "./pages/UserProfile"; // Import the new component
 import Profile from "./pages/Profile";
 import Layout from "./pages/Layout"; // Import the Layout component
 import ChatPage from "./pages/ChatPage";
 import GroupDetails from "./pages/GroupDetails"; // Import the new component
-import Marketplace from "./pages/Marketplace";
+import Marketplace from "./pages/Marketplace/Marketplace";
 import { useSelector } from "react-redux";
-import AddProduct from "./pages/AddEditProduct";
-import AddEditProduct from "./pages/AddEditProduct";
-import ProductDetails from "./pages/ProductDetails";
-import Wishlist from "./pages/Wishlist";
-import MyListings from "./pages/MyListings";
-import SellerChatPage from "./pages/SellerChatPage";
-import ChatInbox from "./pages/ChatInbox";
-import MyOrders from "./pages/MyOrders";
+import AddProduct from "./pages/Marketplace/AddEditProduct";
+import AddEditProduct from "./pages/Marketplace/AddEditProduct";
+import ProductDetails from "./pages/Marketplace/ProductDetails";
+import Wishlist from "./pages/Marketplace/Wishlist";
+import MyListings from "./pages/Marketplace/MyListings";
+import SellerChatPage from "./pages/Marketplace/SellerChatPage";
+import ChatInbox from "./pages/Marketplace/ChatInbox";
+import MyOrders from "./pages/Marketplace/MyOrders";
 import MentorApplicationForm from './components/MentorApplicationForm';
 import AdminDashboard from './components/AdminDashboard';
 import AdminLogin from './components/AdminLogin';

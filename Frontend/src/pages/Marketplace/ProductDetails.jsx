@@ -1,8 +1,9 @@
-// src/pages/ProductDetails.jsx
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom"; 
 import axios from "axios";
 import { useSelector } from "react-redux";
+import { Toaster, toast } from "react-hot-toast";
+import { MessageCircle, Heart, ShoppingCart } from "lucide-react";
 
 const SERVER_URL = "http://localhost:3000";
 
@@ -38,6 +39,7 @@ const ProductDetails = () => {
         setProduct(response.data);
       } catch (error) {
         console.error("Error fetching product:", error);
+        toast.error("Failed to load product");
       } finally {
         setLoading(false);
       }
@@ -46,7 +48,6 @@ const ProductDetails = () => {
     const checkWishlist = async () => {
       try {
         const response = await axios.get(`${SERVER_URL}/api/marketplace/wishlist`, { withCredentials: true });
-        // Assuming each wishlist item has a "productId" field
         setIsInWishlist(response.data.some((item) => item.productId === id));
       } catch (error) {
         console.error("Error checking wishlist:", error);
@@ -62,27 +63,36 @@ const ProductDetails = () => {
     try {
       await axios.post(`${SERVER_URL}/api/marketplace/wishlist/${id}`, {}, { withCredentials: true });
       setIsInWishlist(true);
+      toast.success("Added to Wishlist!", {
+        style: { background: "#333", color: "#fff" },
+      });
     } catch (error) {
       console.error("Error adding to wishlist:", error);
+      toast.error("Failed to add to wishlist", {
+        style: { background: "#333", color: "#fff" },
+      });
     }
   };
 
   const handleAddReview = async () => {
-    if (!reviewText.trim()) return;
+    if (!reviewText.trim()) {
+      toast.error("Review cannot be empty");
+      return;
+    }
     try {
       await axios.post(
         `${SERVER_URL}/api/marketplace/products/${id}/reviews`,
         { rating, text: reviewText },
         { withCredentials: true }
       );
-      // Re-fetch reviews to update the list with complete review data
       fetchReviews();
       setReviewText("");
       setRating(5);
       setReviewError("");
+      toast.success("Review added successfully!");
     } catch (error) {
       console.error("Error adding review:", error.response?.data || error.message);
-      setReviewError(error.response?.data?.message || "Error adding review");
+      toast.error(error.response?.data?.message || "Error adding review");
     }
   };
 
@@ -92,19 +102,20 @@ const ProductDetails = () => {
         withCredentials: true,
       });
       fetchReviews();
+      toast.success("Review deleted successfully");
     } catch (error) {
       console.error("Error deleting review:", error);
+      toast.error("Failed to delete review");
     }
   };
 
   // Buy Now function – initiates payment using Razorpay test mode
   const handleBuyNow = async () => {
     if (!userId) {
-      alert("Please log in to purchase this product.");
+      toast.error("Please log in to purchase this product.");
       return;
     }
     try {
-      // Create Razorpay order via backend
       const response = await axios.post(
         `${SERVER_URL}/api/marketplace/${id}/buy`,
         { buyerId: userId },
@@ -112,9 +123,8 @@ const ProductDetails = () => {
       );
       const { orderId, amount, currency, key } = response.data;
       
-      // Set up Razorpay options
       const options = {
-        key, // Razorpay Test Key ID from backend response
+        key, // Razorpay Test Key ID
         amount, // Amount in paise
         currency,
         name: "Campus Connect Marketplace",
@@ -122,7 +132,6 @@ const ProductDetails = () => {
         order_id: orderId,
         handler: async function (razorpayResponse) {
           try {
-            // Verify payment on backend
             await axios.post(
               `${SERVER_URL}/api/marketplace/verify-payment`,
               { 
@@ -134,57 +143,67 @@ const ProductDetails = () => {
               },
               { withCredentials: true }
             );
-            alert("Payment successful! Product purchased.");
+            toast.success("Payment successful! Product purchased.");
             navigate("/marketplace/orders");
           } catch (error) {
             console.error("Payment verification failed:", error);
-            alert("Payment verification failed. Please contact support.");
+            toast.error("Payment verification failed. Please contact support.");
           }
         },
         prefill: {
           name: user.username,
           email: user.email,
         },
-        theme: {
-          color: "#3399cc",
-        },
+        theme: { color: "#3399cc" },
       };
 
       const razorpay = new window.Razorpay(options);
       razorpay.open();
     } catch (error) {
       console.error("Error initiating purchase:", error);
-      alert("Purchase failed. Please try again.");
+      toast.error("Purchase failed. Please try again.");
     }
   };
 
+  // Unified button variants
+  const buttonVariants = {
+    primary: "bg-indigo-600 hover:bg-indigo-700 text-white hover:shadow-lg hover:shadow-indigo-500/50",
+    secondary: "bg-emerald-600 hover:bg-emerald-700 text-white hover:shadow-lg hover:shadow-emerald-500/50",
+    tertiary: "bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg hover:shadow-purple-500/50"
+  };
+
+  const buttonClasses = (variant = "primary") => 
+    `px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-all duration-300 ${buttonVariants[variant]} disabled:opacity-50 disabled:cursor-not-allowed`;
+
   if (loading) 
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
-        <p className="text-gray-400 text-xl">Loading...</p>
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 to-black">
+        <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-500"></div>
       </div>
     );
   
   if (!product) 
     return (
-      <div className="flex justify-center items-center min-h-screen bg-gray-900">
+      <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
         <p className="text-red-500 text-xl">Product not found</p>
       </div>
     );
 
   return (
-    <div className="p-4 sm:p-6 bg-gray-900 min-h-screen text-white flex items-center justify-center">
+    <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white flex items-center justify-center">
+      <Toaster position="top-right" reverseOrder={false} />
+      
       <div className="w-full max-w-5xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-6 justify-center">
           {/* Left Column: Product Details */}
-          <div className="lg:w-1/2 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 transition-all hover:shadow-2xl">
+          <div className="lg:w-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-700 transition-all hover:shadow-2xl hover:shadow-indigo-500/30">
             <div className="relative h-72 mb-4 overflow-hidden rounded-lg">
               {product.images?.length > 1 ? (
                 <>
                   <img
                     src={product.images[currentImage]}
                     alt={product.title}
-                    className="w-full h-full object-cover rounded-lg transition-opacity duration-300"
+                    className="w-full h-full object-cover rounded-lg transition-opacity duration-300 hover:brightness-110"
                   />
                   <div className="absolute inset-0 flex justify-between items-center px-2">
                     <button
@@ -193,7 +212,7 @@ const ProductDetails = () => {
                           prev === 0 ? product.images.length - 1 : prev - 1
                         )
                       }
-                      className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all"
+                      className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all hover:shadow-indigo-500/50"
                     >
                       ◀
                     </button>
@@ -203,7 +222,7 @@ const ProductDetails = () => {
                           prev === product.images.length - 1 ? 0 : prev + 1
                         )
                       }
-                      className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all"
+                      className="bg-black bg-opacity-50 hover:bg-opacity-70 p-2 rounded-full text-white shadow-lg transition-all hover:shadow-indigo-500/50"
                     >
                       ▶
                     </button>
@@ -231,7 +250,9 @@ const ProductDetails = () => {
               )}
             </div>
 
-            <h2 className="text-2xl font-bold text-white mb-2">{product.title}</h2>
+            <h2 className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-2">
+              {product.title}
+            </h2>
             <div className="flex justify-between items-center mb-3">
               <p className="text-xl text-green-400 font-semibold">₹{product.price}</p>
               {product.averageRating > 0 && (
@@ -262,13 +283,9 @@ const ProductDetails = () => {
                 <button
                   onClick={addToWishlist}
                   disabled={isInWishlist}
-                  className={`px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors ${
-                    isInWishlist 
-                      ? "bg-gray-700 text-gray-400 cursor-not-allowed" 
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
+                  className={buttonClasses("tertiary")}
                 >
-                  <span>{isInWishlist ? "✅" : "❤️"}</span>
+                  <Heart className="w-5 h-5" />
                   <span>{isInWishlist ? "Added to Wishlist" : "Add to Wishlist"}</span>
                 </button>
               </div>
@@ -276,28 +293,24 @@ const ProductDetails = () => {
               <div className="space-y-3">
                 <button
                   onClick={() => navigate(`/chat/${product.sellerId._id}`)}
-                  className="bg-green-600 hover:bg-green-700 text-white px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors"
+                  className={buttonClasses("secondary")}
                 >
-                  <span>💬</span>
+                  <MessageCircle className="w-5 h-5" />
                   <span>Message Seller</span>
                 </button>
                 <button
                   onClick={addToWishlist}
                   disabled={isInWishlist}
-                  className={`px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors ${
-                    isInWishlist 
-                      ? "bg-gray-700 text-gray-400 cursor-not-allowed" 
-                      : "bg-blue-600 hover:bg-blue-700 text-white"
-                  }`}
+                  className={buttonClasses("tertiary")}
                 >
-                  <span>{isInWishlist ? "✅" : "❤️"}</span>
+                  <Heart className="w-5 h-5" />
                   <span>{isInWishlist ? "Added to Wishlist" : "Add to Wishlist"}</span>
                 </button>
                 <button
                   onClick={handleBuyNow}
-                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-colors"
+                  className={buttonClasses("primary")}
                 >
-                  <span>🛒</span>
+                  <ShoppingCart className="w-5 h-5" />
                   <span>Buy Now</span>
                 </button>
               </div>
@@ -305,18 +318,23 @@ const ProductDetails = () => {
           </div>
 
           {/* Right Column: Reviews */}
-          <div className="lg:w-1/2 bg-gray-800 p-6 rounded-lg shadow-xl border border-gray-700 transition-all hover:shadow-2xl">
-            <h3 className="text-2xl font-bold text-white mb-4 flex items-center">
-              <span>Reviews</span>
+          <div className="lg:w-1/2 bg-gray-800 p-6 rounded-lg shadow-2xl border border-gray-700 transition-all hover:shadow-2xl hover:shadow-indigo-500/30">
+            <h3 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400 mb-4 flex items-center">
+              Reviews
               {reviews.length > 0 && (
-                <span className="ml-2 bg-gray-700 text-sm px-2 py-1 rounded-full">{reviews.length}</span>
+                <span className="ml-2 bg-gray-700 text-sm px-2 py-1 rounded-full">
+                  {reviews.length}
+                </span>
               )}
             </h3>
             
             {reviews.length > 0 ? (
               <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                 {reviews.map((review) => (
-                  <div key={review._id} className="bg-gray-700 p-4 rounded-lg transition-all hover:bg-gray-650">
+                  <div 
+                    key={review._id} 
+                    className="bg-gray-700 p-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/30"
+                  >
                     <div className="flex justify-between items-start">
                       <div className="flex items-center mb-2">
                         <div className="bg-gray-600 rounded-full w-8 h-8 flex items-center justify-center mr-2">
@@ -334,7 +352,7 @@ const ProductDetails = () => {
                       <div className="flex justify-end">
                         <button
                           onClick={() => handleDeleteReview(review._id)}
-                          className="text-red-400 hover:text-red-500 text-sm flex items-center"
+                          className="text-red-400 hover:text-red-500 text-sm flex items-center transition-colors"
                         >
                           <span className="mr-1">🗑</span>
                           <span>Delete</span>
@@ -359,7 +377,7 @@ const ProductDetails = () => {
                   </div>
                 )}
                 <textarea
-                  className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-blue-500 focus:outline-none transition-colors"
+                  className="w-full p-3 bg-gray-700 text-white rounded-lg border border-gray-600 focus:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all duration-300 hover:border-indigo-500"
                   placeholder="Write your review here..."
                   rows="3"
                   value={reviewText}
@@ -382,10 +400,10 @@ const ProductDetails = () => {
                   <button
                     onClick={handleAddReview}
                     disabled={!reviewText.trim()}
-                    className={`flex-1 py-2 rounded-lg transition-colors ${
+                    className={`flex-1 py-2 rounded-lg transition-all duration-300 ${
                       !reviewText.trim()
                         ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                        : "bg-blue-600 hover:bg-blue-700 text-white"
+                        : buttonClasses("primary")
                     }`}
                   >
                     Submit Review

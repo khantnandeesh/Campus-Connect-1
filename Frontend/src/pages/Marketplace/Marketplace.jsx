@@ -1,7 +1,16 @@
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { Toaster } from "react-hot-toast";
+import { 
+  MessageCircle, 
+  Heart, 
+  Plus, 
+  Package, 
+  ShoppingCart, 
+  Loader2 
+} from "lucide-react";
 
 const Marketplace = () => {
   const user = useSelector((state) => state.auth.user);
@@ -43,11 +52,8 @@ const Marketplace = () => {
       try {
         const response = await axios.get(
           `http://localhost:3000/api/chatMarket/inbox?userId=${userId}`,
-          {
-            withCredentials: true,
-          }
+          { withCredentials: true }
         );
-        // Sum up unread counts from each chat
         const totalUnread = response.data.reduce(
           (acc, chat) => acc + (chat.unreadCount || 0),
           0
@@ -75,60 +81,67 @@ const Marketplace = () => {
     });
 
   return (
-    <div className="p-6 bg-gray-900 min-h-screen text-white">
-      {/* Header */}
+    <div className="p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white">
+      <Toaster position="top-right" reverseOrder={false} />
+      
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
-        <h2 className="text-3xl font-semibold">Marketplace</h2>
-        <div className="flex space-x-4">
+        <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 drop-shadow-lg">
+          Marketplace
+        </h2>
+        <div className="flex space-x-4 flex-wrap justify-center">
           <Link
             to="/chat/inbox"
-            className="relative bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+            className="relative bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/50 m-1 flex items-center gap-2"
           >
-            📩 Messages
+            <MessageCircle className="w-5 h-5" />
+            Messages
             {unreadCount > 0 && (
-              <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-600 rounded-full">
+              <span className="absolute -top-2 -right-2 inline-flex items-center justify-center px-2 py-1 text-xs font-bold text-white bg-red-600 rounded-full">
                 {unreadCount}
               </span>
             )}
           </Link>
           <Link
             to="/marketplace/wishlist"
-            className="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/50 m-1 flex items-center gap-2"
           >
-            ❤️ Wishlist
+            <Heart className="w-5 h-5" />
+            Wishlist
           </Link>
           <Link
             to="/marketplace/add"
-            className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/50 m-1 flex items-center gap-2"
           >
-            ➕ Add Product
+            <Plus className="w-5 h-5" />
+            Add Product
           </Link>
           <Link
             to="/marketplace/listings"
-            className="bg-purple-500 hover:bg-purple-600 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/50 m-1 flex items-center gap-2"
           >
-            📦 My Listings
+            <Package className="w-5 h-5" />
+            My Listings
           </Link>
           <Link
             to="/marketplace/orders"
-            className="bg-green-500 hover:bg-green-600 text-white px-4 py-2 rounded-lg"
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-gray-500/50 m-1 flex items-center gap-2"
           >
-            🛒 My Orders
+            <ShoppingCart className="w-5 h-5" />
+            My Orders
           </Link>
         </div>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-4 mb-6">
         <input
           type="text"
           placeholder="Search products..."
-          className="p-3 w-full sm:w-1/3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="p-3 w-full sm:w-1/3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300 hover:border-blue-500"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
         />
         <select
-          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
           value={category}
           onChange={(e) => setCategory(e.target.value)}
         >
@@ -140,7 +153,7 @@ const Marketplace = () => {
           ))}
         </select>
         <select
-          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="p-3 bg-gray-800 text-white rounded-lg border border-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all duration-300"
           value={sort}
           onChange={(e) => setSort(e.target.value)}
         >
@@ -151,28 +164,37 @@ const Marketplace = () => {
         </select>
       </div>
 
-      {/* Products List */}
       {loading ? (
-        <p className="text-center text-gray-400">Loading products...</p>
+        <div className="flex justify-center items-center h-64">
+          <Loader2 className="animate-spin h-16 w-16 text-blue-500" />
+        </div>
       ) : filteredProducts.length === 0 ? (
-        <p className="text-center text-gray-400">No products available</p>
+        <p className="text-center text-gray-400 text-xl">No products available</p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {filteredProducts.map((product) => (
             <div
               key={product._id}
-              className="bg-gray-800 p-4 rounded-lg shadow-lg border border-gray-700 relative hover:scale-105 transition-transform"
+              className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 relative hover:scale-105 transition-all duration-300 hover:shadow-2xl hover:shadow-gray-500/30"
             >
               <Link to={`/marketplace/${product._id}`} className="block">
                 <img
                   src={product.images[0]}
                   alt={product.title}
-                  className="w-full h-48 object-cover rounded-lg"
+                  className="w-full h-48 object-cover rounded-lg border-2 border-transparent hover:border-blue-500 transition-all duration-300"
                 />
-                <h3 className="text-xl font-medium mt-3">{product.title}</h3>
+                <h3 className="text-xl font-medium mt-3 text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
+                  {product.title}
+                </h3>
                 <p className="text-green-400 text-lg font-semibold">
                   ₹{product.price}
                 </p>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm text-gray-400">{product.category}</span>
+                  {product.sold && (
+                    <span className="text-red-500 text-sm font-bold">Sold</span>
+                  )}
+                </div>
               </Link>
             </div>
           ))}
