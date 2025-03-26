@@ -3,6 +3,7 @@ import PropTypes from "prop-types";
 import { toast } from "react-toastify";
 import { Dialog, Transition } from "@headlessui/react";
 import { FaArrowAltCircleUp, FaArrowAltCircleDown } from "react-icons/fa";
+import { IoTrashBinSharp } from "react-icons/io5";
 import { useNavigate } from "react-router-dom";
 import {
   fetchQuestions,
@@ -14,15 +15,15 @@ import {
   deleteQuestionAndAnswers,
   upvoteQuestion,
   downvoteQuestion,
-} from "../utils/Doubts/doubtService";
+} from "../../utils/Doubts/doubtService";
 import {
   socket,
   subscribeToQuestions,
   subscribeToAnswers,
   emitNewQuestion,
   emitNewAnswer,
-} from "../utils/Doubts/socket";
-import PaginationSlider from "../components/PaginationSlider";
+} from "../../utils/Doubts/socket";
+import PaginationSlider from "../../components/PaginationSlider";
 import { AnswerDialog } from "./QuestionDetail";
 const CATEGORIES = [
   "Problem Discussions",
@@ -419,10 +420,10 @@ const DoubtsPage = () => {
   }
 
   return (
-    <div className="p-4 min-h-screen bg-[#222831] flex flex-col text-[#EEEEEE]">
+    <div className="p-4 min-h-screen bg-[#0A192F] flex flex-col text-[#E0EFFF]">
       {isLoading && (
-        <div className="fixed inset-0 flex items-center justify-center bg-[#424242] bg-opacity-50 z-50">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-white"></div>
+        <div className="fixed inset-0 flex items-center justify-center bg-[#112240] bg-opacity-50 z-50">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#64FFDA]"></div>
         </div>
       )}
 
@@ -432,7 +433,7 @@ const DoubtsPage = () => {
           <select
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
-            className="p-2 border rounded-md bg-[#222831]"
+            className="p-2 border rounded-md bg-[#112240] text-[#E0EFFF]"
           >
             <option value="">All Categories</option>
             {CATEGORIES.map((cat) => (
@@ -444,7 +445,7 @@ const DoubtsPage = () => {
           <select
             value={sortOption}
             onChange={(e) => setSortOption(e.target.value)}
-            className="p-2 border rounded-md ml-2 bg-[#222831]"
+            className="p-2 border rounded-md ml-2 bg-[#112240] text-[#E0EFFF]"
           >
             {SORT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -457,18 +458,18 @@ const DoubtsPage = () => {
           <input
             value={tagSearch}
             onChange={(e) => setTagSearch(e.target.value)}
-            className="p-2 border rounded-md bg-[#222831]"
+            className="p-2 border rounded-md bg-[#112240] text-[#E0EFFF]"
             placeholder="Search by tag"
           />
         </div>
       </div>
       {questions.length === 0 && !isLoading && !error ? (
         <div className="text-center">
-          <p className="text-gray-500 mb-4">
+          <p className="text-gray-400 mb-4">
             No questions yet. Be the first to ask!
           </p>
           <button
-            className="bg-green-500 text-white py-2 px-4 rounded-lg hover:bg-green-600"
+            className="bg-[#64FFDA] text-[#0A192F] py-2 px-4 rounded-lg hover:bg-[#52E0C4]"
             onClick={toggleDialog}
           >
             Ask a Question
@@ -482,7 +483,7 @@ const DoubtsPage = () => {
           {questions.map((question) => (
             <div
               key={question._id}
-              className="bg-[#31363F] p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-[#112240] p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => handleQuestionClick(question)}
             >
               <div className="flex justify-between items-start mb-3">
@@ -496,7 +497,7 @@ const DoubtsPage = () => {
                     {question.tags.map((tag) => (
                       <span
                         key={tag}
-                        className="bg-blue-500 bg-opacity-20 text-blue-300 px-2 py-1 rounded-full text-sm"
+                        className="bg-[#233554] text-[#64FFDA] px-2 py-1 rounded-full text-sm"
                       >
                         {tag}
                       </span>
@@ -514,7 +515,7 @@ const DoubtsPage = () => {
                       e.stopPropagation();
                       handleUpvote(question._id);
                     }}
-                    className="text-gray-400 hover:text-blue-500 transition-colors"
+                    className="text-gray-400 hover:text-[#64FFDA] transition-colors"
                   >
                     <FaArrowAltCircleUp size={24} />
                     <span>{question.upvotes || 0}</span>
@@ -525,7 +526,7 @@ const DoubtsPage = () => {
                       e.stopPropagation();
                       handleDownvote(question._id);
                     }}
-                    className="text-gray-400 hover:text-red-500 transition-colors"
+                    className="text-gray-400 hover:text-[#FF6B6B] transition-colors"
                   >
                     <FaArrowAltCircleDown size={24} />
                     <span>{question.downvotes || 0}</span>
@@ -547,9 +548,9 @@ const DoubtsPage = () => {
                     e.stopPropagation();
                     handleResolveQuestion(question._id);
                   }}
-                  className="px-4 py-2 bg-green-500 text-white rounded-lg hover:bg-green-600"
+                  className="px-4 py-2 bg-[#64FFDA] text-[#0A192F] rounded-lg hover:bg-[#52E0C4]"
                 >
-                  Resolve Question
+                  <IoTrashBinSharp className="text-[20px]" />
                 </button>
               </div>
             </div>
@@ -564,7 +565,7 @@ const DoubtsPage = () => {
         />
       </footer>
       <button
-        className="fixed bottom-4 right-4 p-4 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600 focus:outline-none"
+        className="fixed bottom-4 right-4 p-4 bg-[#64FFDA] text-[#0A192F] rounded-full shadow-lg hover:bg-[#52E0C4] focus:outline-none"
         onClick={toggleDialog}
       >
         Ask a Question

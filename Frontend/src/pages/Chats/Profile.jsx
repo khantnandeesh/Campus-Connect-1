@@ -3,7 +3,7 @@ import {
   getUserProfile,
   updateUserProfile,
   updateUserAvatar,
-} from "../utils/profileService";
+} from "../../utils/profileService";
 import { useParams, useNavigate } from "react-router-dom";
 import { toast } from "react-hot-toast"; // Import toast for error handling
 import { FaEdit, FaSave, FaTimes, FaPlus, FaUserFriends } from "react-icons/fa"; // Import icons

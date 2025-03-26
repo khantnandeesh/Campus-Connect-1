@@ -29,11 +29,11 @@ const protectRoute = async (req, res, next) => {
         .json({ error: "Unauthorized - No token provided" });
     }
 
-    console.log("Token type:", isAdminRequest ? "admin" : "user");
-    console.log("Token from cookies:", token);
+    // console.log("Token type:", isAdminRequest ? "admin" : "user");
+    // console.log("Token from cookies:", token);
 
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log("Decoded token:", { id: decoded.id, isAdmin: decoded.isAdmin });
+    // console.log("Decoded token:", { id: decoded.id, isAdmin: decoded.isAdmin });
 
     if (!decoded) {
       return res.status(401).json({ error: "Unauthorized - Invalid token" });
@@ -78,7 +78,7 @@ const protectRoute = async (req, res, next) => {
       college: decoded.college,
     };
 
-    console.log("User in protectRoute:", req.user);
+    // console.log("User in protectRoute:", req.user);
     next();
   } catch (error) {
     console.log("Error in protectRoute middleware: ", error.message);

@@ -65,11 +65,17 @@ export const getAllQuestions = async (req, res) => {
       .skip(skip)
       .limit(limit);
 
+    const questionsWithVotes = questions.map((question) => ({
+      ...question.toObject(),
+      upvotes: question.upvotedBy.length,
+      downvotes: question.downvotedBy.length,
+    }));
+
     const totalQuestions = await Question.countDocuments(query);
     const hasMore = totalQuestions > skip + questions.length;
 
     return res.status(200).json({
-      questions,
+      questions: questionsWithVotes,
       currentPage: page,
       totalPages: Math.ceil(totalQuestions / limit),
       hasMore,
@@ -83,28 +89,60 @@ export const getAllQuestions = async (req, res) => {
 export const upvoteQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
+    const userId = req.user._id;
+
     const question = await Question.findById(questionId);
-    question.upvotes += 1;
+
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    if (question.upvotedBy.includes(userId)) {
+      question.upvotedBy.pull(userId); // Remove upvote
+    } else {
+      question.upvotedBy.push(userId); // Add upvote
+      question.downvotedBy.pull(userId); // Remove downvote if exists
+    }
+
     await question.save();
 
-    return res.status(200).json(question);
+    return res.status(200).json({
+      upvotes: question.upvotedBy.length,
+      downvotes: question.downvotedBy.length,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to upvote question" });
+    return res.status(500).json({ message: "Failed to toggle upvote", error });
   }
 };
 
 export const downvoteQuestion = async (req, res) => {
   try {
     const { questionId } = req.params;
+    const userId = req.user._id;
 
     const question = await Question.findById(questionId);
-    question.downvotes += 1;
+
+    if (!question) {
+      return res.status(404).json({ message: "Question not found" });
+    }
+
+    if (question.downvotedBy.includes(userId)) {
+      question.downvotedBy.pull(userId); // Remove downvote
+    } else {
+      question.downvotedBy.push(userId); // Add downvote
+      question.upvotedBy.pull(userId); // Remove upvote if exists
+    }
 
     await question.save();
 
-    return res.status(200).json(question);
+    return res.status(200).json({
+      upvotes: question.upvotedBy.length,
+      downvotes: question.downvotedBy.length,
+    });
   } catch (error) {
-    return res.status(500).json({ message: "Failed to downvote question" });
+    return res
+      .status(500)
+      .json({ message: "Failed to toggle downvote", error });
   }
 };
 

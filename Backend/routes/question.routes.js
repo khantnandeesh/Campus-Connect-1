@@ -10,8 +10,8 @@ import protectRoute from "../middleware/protectRoute.js";
 const router = express.Router();
 
 router.post("/", protectRoute, createQuestion);
-router.put("/upvote/:questionId", upvoteQuestion);
-router.put("/downvote/:questionId", downvoteQuestion);
+router.put("/upvote/:questionId", protectRoute, upvoteQuestion);
+router.put("/downvote/:questionId", protectRoute, downvoteQuestion);
 // GET /?page=1&limit=10
 router.get("/", protectRoute, getAllQuestions);
 

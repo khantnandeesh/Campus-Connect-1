@@ -494,44 +494,50 @@ const Header = () => {
 
   return (
     <>
-      <header className="bg-blue-600 text-white">
+      <header className="bg-gradient-to-r from-[#35A29F] via-[#088395] to-[#071952] text-white shadow-lg">
         <div className="container mx-auto flex justify-between items-center p-4">
-          <h1 className="text-xl font-bold">Nexus</h1>
+          <div className="p-0 h-12 w-12">
+            <img
+              src="../../public/logo.png"
+              alt="Logo"
+              className="rounded-full"
+            />
+          </div>
           <div>
-            <ul className="flex items-center space-x-4">
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/dashboard" className="nav-link ">
+            <ul className="flex items-center space-x-6">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/dashboard" className="nav-link font-semibold">
                   Dashboard
                 </Link>
               </li>
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/doubts" className="nav-link">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/doubts" className="nav-link font-semibold">
                   Discussion
                 </Link>
               </li>
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/room" className="nav-link">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/room" className="nav-link font-semibold">
                   Rooms
                 </Link>
               </li>
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/chats" className="nav-link">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/chats" className="nav-link font-semibold">
                   Chats
                 </Link>
               </li>
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/mentors" className="nav-link">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/mentors" className="nav-link font-semibold">
                   Mentors
                 </Link>
               </li>
-              <li className="hover:bg-blue-700 hover:rounded-xl p-1">
-                <Link to="/marketplace" className="nav-link">
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/marketplace" className="nav-link font-semibold">
                   Market
                 </Link>
               </li>
             </ul>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-6">
             {/* Blurred Overlay when search is active */}
             {searchOpen && (
               <div

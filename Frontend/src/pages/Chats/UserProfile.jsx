@@ -4,7 +4,7 @@ import {
   getUserProfile,
   sendFriendRequest,
   removeFriend,
-} from "../utils/profileService";
+} from "../../utils/profileService";
 import { toast } from "react-hot-toast";
 
 const UserProfile = () => {

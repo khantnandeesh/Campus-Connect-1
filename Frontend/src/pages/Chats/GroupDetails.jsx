@@ -10,8 +10,8 @@ import {
   editGroupDetails,
   updateGroupAvatar,
   joinGroup,
-} from "../utils/groupService";
-import { searchUsers } from "../utils/profileService";
+} from "../../utils/groupService";
+import { searchUsers } from "../../utils/profileService";
 import { toast } from "react-hot-toast";
 
 const GroupDetails = () => {

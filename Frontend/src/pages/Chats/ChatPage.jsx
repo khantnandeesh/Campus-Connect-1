@@ -1,10 +1,13 @@
 import { useState, useEffect } from "react";
-import { socket } from "../utils/personalChatService";
-import Sidebar from "../components/chatComponents/Sidebar";
-import NoChatSelected from "../components/chatComponents/NoChatSelected";
-import ChatContainer from "../components/chatComponents/ChatContainer";
-import { getUserChats, getOnlineFriends } from "../utils/personalChatService";
-import { getGroupChats, socket as groupSocket } from "../utils/groupService";
+import { socket } from "../../utils/personalChatService";
+import Sidebar from "../../components/chatComponents/Sidebar";
+import NoChatSelected from "../../components/chatComponents/NoChatSelected";
+import ChatContainer from "../../components/chatComponents/ChatContainer";
+import {
+  getUserChats,
+  getOnlineFriends,
+} from "../../utils/personalChatService";
+import { getGroupChats, socket as groupSocket } from "../../utils/groupService";
 
 const ChatPage = () => {
   const [selectedUser, setSelectedUser] = useState(null);
