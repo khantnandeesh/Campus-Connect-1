@@ -12,7 +12,7 @@ import {
   fetchReplies,
   upvoteAnswer,
   downvoteAnswer,
-} from "../utils/Doubts/doubtService";
+} from "../../utils/Doubts/doubtService";
 import {
   subscribeToAnswers,
   subscribeToReplies,
@@ -20,7 +20,7 @@ import {
   emitNewReply,
   subscribeToLoadedAnswers,
   cleanup,
-} from "../utils/Doubts/socket";
+} from "../../utils/Doubts/socket";
 import { Dialog, Transition } from "@headlessui/react";
 
 export const AnswerDialog = ({
@@ -331,12 +331,14 @@ const QuestionDetail = () => {
   }
 
   return (
-    <div className="p-4 bg-[#222831] min-h-screen text-[#EEEEEE]">
+    <div className="p-6 bg-gradient-to-b from-[#0A192F] to-[#112240] min-h-screen text-[#E0EFFF]">
       {question && (
-        <div className="mb-6 p-6 rounded-lg">
+        <div className="mb-8 p-6 rounded-lg bg-[#1C2A3A] shadow-lg">
           <div className="flex justify-between">
-            <h1 className="text-2xl font-bold mb-4">{question.title}</h1>
-            <span className="">
+            <h1 className="text-3xl font-bold mb-4 text-[#64FFDA]">
+              {question.title}
+            </h1>
+            <span className="text-gray-400">
               {new Date(question.createdAt).toLocaleDateString()}
             </span>
           </div>
@@ -345,7 +347,7 @@ const QuestionDetail = () => {
             {question.tags.map((tag) => (
               <span
                 key={tag}
-                className="bg-blue-500 bg-opacity-20 text-blue-300 px-3 py-1 rounded-full"
+                className="bg-[#233554] text-[#64FFDA] px-3 py-1 rounded-full"
               >
                 {tag}
               </span>
@@ -358,7 +360,7 @@ const QuestionDetail = () => {
         </div>
       )}
 
-      <div className="space-y-4">
+      <div className="space-y-6">
         {answers.map((answer) => (
           <AnswerComponent
             key={answer._id}
@@ -374,7 +376,7 @@ const QuestionDetail = () => {
         {hasMore && (
           <button
             onClick={loadMoreAnswers}
-            className="w-full bg-[#31363F] text-blue-400 py-2 rounded-lg hover:bg-[#404650]"
+            className="w-full bg-[#1C2A3A] text-[#64FFDA] py-3 rounded-lg hover:bg-[#233554] shadow-md"
           >
             Load more answers
           </button>
@@ -386,7 +388,7 @@ const QuestionDetail = () => {
           setReplyTo(null);
           setIsAnswering(true);
         }}
-        className="fixed bottom-4 right-4 p-4 bg-green-500 text-white rounded-full shadow-lg hover:bg-green-600"
+        className="fixed bottom-6 right-6 p-4 bg-[#64FFDA] text-[#0A192F] rounded-full shadow-lg hover:bg-[#52E0C4]"
       >
         Answer
       </button>

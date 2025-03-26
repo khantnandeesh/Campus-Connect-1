@@ -16,6 +16,7 @@ A platform for students to connect, collaborate, and manage academic activities.
   - Search questions by tags.
   - Sort questions by category, most upvotes, or latest.
   - Implement a pagination slider for reducing load on database.
+- Discussion Forum: ![Discussion Forum](./frontend/public/doubt.png)
 
 ### 2. Chat System
 
@@ -35,7 +36,6 @@ A platform for students to connect, collaborate, and manage academic activities.
 
 <!-- Add screenshots of features below -->
 
-- Discussion Forum: ![Discussion Forum](./screenshots/discussion-forum.png)
 - Chat System: ![Chat System](./screenshots/chat-system.png)
 
 ---
