@@ -29,14 +29,7 @@ A platform for students to connect, collaborate, and manage academic activities.
   - Group-specific features:
     - Poll creation.
     - Pinned messages (admin-only).
-
----
-
-## Screenshots
-
-<!-- Add screenshots of features below -->
-
-- Chat System: ![Chat System](./screenshots/chat-system.png)
+- Chat System: ![Chat System](./frontend/public/chat.png)
 
 ---
 
