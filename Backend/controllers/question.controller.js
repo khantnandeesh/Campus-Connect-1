@@ -23,7 +23,7 @@ export const createQuestion = async (req, res) => {
 
     const questionWithUser = await Question.findById(newQuestion._id).populate(
       "createdBy",
-      "username"
+      "username avatar"
     );
 
     return res.status(201).json(questionWithUser);
@@ -60,7 +60,7 @@ export const getAllQuestions = async (req, res) => {
     }
 
     const questions = await Question.find(query)
-      .populate("createdBy", "username")
+      .populate("createdBy", "username avatar")
       .sort(sortOptions)
       .skip(skip)
       .limit(limit);

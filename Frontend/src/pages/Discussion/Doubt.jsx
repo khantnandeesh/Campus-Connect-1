@@ -486,39 +486,57 @@ const DoubtsPage = () => {
               className="bg-[#112240] p-4 rounded-lg shadow-md hover:shadow-lg transition-shadow cursor-pointer"
               onClick={() => handleQuestionClick(question)}
             >
-              <div className="flex justify-between items-start mb-3">
-                <div>
-                  <h3 className="text-xl font-semibold mb-2">
-                    {question.title}
-                  </h3>
-                  <p className="text-gray-300 mb-3">{question.description}</p>
-
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    {question.tags.map((tag) => (
-                      <span
-                        key={tag}
-                        className="bg-[#233554] text-[#64FFDA] px-2 py-1 rounded-full text-sm"
-                      >
-                        {tag}
-                      </span>
-                    ))}
-                  </div>
-
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center space-x-3">
+                  <img
+                    src={question.createdBy?.avatar || "/default-avatar.png"}
+                    alt="User Avatar"
+                    className="w-8 h-8 rounded-full"
+                  />
                   <span className="text-sm text-gray-400">
-                    Category: {question.category}
+                    {question.createdBy?.username || "Anonymous"}
                   </span>
                 </div>
+                <span className="text-sm text-gray-400">
+                  {new Date(question.createdAt).toLocaleDateString("en-US", {
+                    day: "numeric",
+                    month: "long",
+                    year: "numeric",
+                  })}
+                </span>
+              </div>
 
-                <div className="flex flex-col items-center space-y-1">
+              <div>
+                <h3 className="text-xl font-semibold mb-2">{question.title}</h3>
+                <p className="text-gray-300 mb-3">{question.description}</p>
+
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {question.tags.map((tag) => (
+                    <span
+                      key={tag}
+                      className="bg-[#233554] text-[#64FFDA] px-2 py-1 rounded-full text-sm"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <span className="text-sm text-gray-400">
+                  Category: {question.category}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center mt-4">
+                <div className="flex space-x-4">
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
                       handleUpvote(question._id);
                     }}
-                    className="text-gray-400 hover:text-[#64FFDA] transition-colors"
+                    className="text-gray-400 hover:text-[#64FFDA] transition-colors flex items-center"
                   >
                     <FaArrowAltCircleUp size={24} />
-                    <span>{question.upvotes || 0}</span>
+                    <span className="ml-1">{question.upvotes || 0}</span>
                   </button>
 
                   <button
@@ -526,29 +544,19 @@ const DoubtsPage = () => {
                       e.stopPropagation();
                       handleDownvote(question._id);
                     }}
-                    className="text-gray-400 hover:text-[#FF6B6B] transition-colors"
+                    className="text-gray-400 hover:text-[#FF6B6B] transition-colors flex items-center"
                   >
                     <FaArrowAltCircleDown size={24} />
-                    <span>{question.downvotes || 0}</span>
+                    <span className="ml-1">{question.downvotes || 0}</span>
                   </button>
                 </div>
-              </div>
 
-              <div className="flex justify-between items-center mt-4">
-                <div className="flex items-center space-x-4">
-                  <span className="text-sm text-gray-400">
-                    Asked by: {question.createdBy?.username}
-                  </span>
-                  <span>
-                    {new Date(question.createdAt).toLocaleDateString()}
-                  </span>
-                </div>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
                     handleResolveQuestion(question._id);
                   }}
-                  className="px-4 py-2 bg-[#64FFDA] text-[#0A192F] rounded-lg hover:bg-[#52E0C4]"
+                  className="px-4 py-2 bg-[#64FFDA] text-[#0A192F] rounded-lg hover:bg-[#52E0C4] flex items-center"
                 >
                   <IoTrashBinSharp className="text-[20px]" />
                 </button>

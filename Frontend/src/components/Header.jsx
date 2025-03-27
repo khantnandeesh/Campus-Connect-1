@@ -16,7 +16,6 @@ import axios from "axios";
 import SearchResultItem from "./SearchResultItem"; // Import the new component
 import { toast } from "react-hot-toast";
 import { searchPublicGroups } from "../utils/groupService";
-
 const socket = io("http://localhost:3000", { withCredentials: true });
 
 const apiClient = axios.create({
@@ -498,7 +497,7 @@ const Header = () => {
         <div className="container mx-auto flex justify-between items-center p-4">
           <div className="p-0 h-12 w-12">
             <img
-              src="../../public/logo.png"
+              src="../../images/logo.png"
               alt="Logo"
               className="rounded-full"
             />
