@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
+import Sender from "./Sender";
 
 const Room = () => {
   const [roomId, setRoomId] = useState("");
@@ -66,6 +67,7 @@ const Room = () => {
           Join Room
         </button>
       </div>
+   
     </div>
   );
 };

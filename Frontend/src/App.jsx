@@ -37,6 +37,7 @@ import MentorList from "./components/MentorList";
 import Chat from "./pages/Chat";
 import WebSocketProvider from "./components/WebSocketProvider";
 import FindUsers from "./pages/FindUsers";
+import Mediator from "./pages/VirtualRooms/Mediator";
 
 // Protected Route Component
 const ProtectedAdminRoute = ({ children }) => {
@@ -117,8 +118,9 @@ const App = () => {
                 </ProtectedAdminRoute>
               }
             />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
+            <Route path="/signup" element={ <Signup /> } />
+            <Route path="/login" element={ <Login /> } />
+            {/* <Route path="/mediator" element={ <Mediator /> } /> */}
           </Routes>
         </Router>
       </WebSocketProvider>

@@ -154,7 +154,11 @@ router.post("/login", async (req, res) => {
       text: `Your OTP is: ${otp}`
     });
     console.log("email sent with otp " + otp + "to email " + user.email);
-
+    const token = jwt.sign(
+      { id: user._id, username: user.username, email: user.email },
+      process.env.JWT_SECRET,
+      { expiresIn: "5d" }
+    );
     if (!emailSent) {
       return res
         .status(500)
@@ -162,7 +166,12 @@ router.post("/login", async (req, res) => {
     }
 
     otpStore[user.email] = otp;
-    res.status(200).json({ message: "OTP sent to email. Verify to login." });
+    res.cookie("authToken", token, {
+      httpOnly: true,
+      sameSite: "strict",
+      maxAge: 5 * 24 * 60 * 600 * 1000,
+    });
+    res.status(200).json({ message: "DONE " });
   } catch (error) {
     res.status(500).json({ message: "Error during login", error });
   }
@@ -188,6 +197,7 @@ router.post("/verify-signup", async (req, res) => {
     await newUser.save();
     delete otpStore[email];
 
+
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     res.status(500).json({ message: "Error saving user", error });
@@ -203,19 +213,11 @@ router.post("/verify-login", async (req, res) => {
       return res.status(400).json({ message: "Invalid OTP or user" });
     }
 
-    const token = jwt.sign(
-      { id: user._id, username: user.username, email: user.email },
-      process.env.JWT_SECRET,
-      { expiresIn: "5d" }
-    );
+   
 
     delete otpStore[user.email];
 
-    res.cookie("authToken", token, {
-      httpOnly: true,
-      sameSite: "strict",
-      maxAge: 5 * 24 * 60 * 60 * 1000,
-    });
+ 
 
     res.status(200).json({ message: "Login successful", token, user });
   } catch (error) {

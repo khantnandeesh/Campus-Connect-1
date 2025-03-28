@@ -10,6 +10,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    
     const fetchDashboard = async () => {
       try {
         const response = await axios.get("http://localhost:3000/auth/dashboard", {

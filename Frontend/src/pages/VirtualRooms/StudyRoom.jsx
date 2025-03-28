@@ -4,6 +4,7 @@ import { io } from "socket.io-client";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+import Sender from "./Sender";
 
 const socket = io("http://localhost:3000");
 axios.defaults.baseURL = "http://localhost:3000";
@@ -375,6 +376,7 @@ const StudyRoom = () => {
           </div>
         </div>
       </div>
+      {/* <Sender userId={currentUserId} roomId={roomId} /> */}
     </div>
   );
 };

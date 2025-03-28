@@ -213,70 +213,7 @@ const MeetingCalendar = ({ user }) => {
           >
             Meeting Dashboard
           </h1>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              borderBottom: "1px solid #333",
-              paddingBottom: "16px",
-            }}
-          >
-            <div style={{ textAlign: "left" }}>
-              <p style={{ margin: "4px 0", fontSize: "14px" }}>
-                <span style={{ color: "#a0a0a0" }}>Welcome,</span>{" "}
-                <strong>{user?.username || "User"}</strong>
-              </p>
-              <p style={{ margin: "4px 0", fontSize: "14px" }}>
-                <span style={{ color: "#a0a0a0" }}>Email:</span>{" "}
-                <strong>{user?.email}</strong>
-              </p>
-            </div>
-            <div style={{ display: "flex", gap: "12px" }}>
-              <button
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#2c3e50",
-                  color: "#e0e0e0",
-                  borderRadius: "4px",
-                  border: "1px solid #34495e",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#34495e";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#2c3e50";
-                }}
-                onClick={() => navigate(`/find-users/${user?._id}`)}
-              >
-                Find Users
-              </button>
-              <button
-                style={{
-                  padding: "8px 16px",
-                  backgroundColor: "#c0392b",
-                  color: "#e0e0e0",
-                  borderRadius: "4px",
-                  border: "none",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  transition: "all 0.2s ease",
-                }}
-                onMouseOver={(e) => {
-                  e.target.style.backgroundColor = "#a63326";
-                }}
-                onMouseOut={(e) => {
-                  e.target.style.backgroundColor = "#c0392b";
-                }}
-                onClick={handleLogout}
-              >
-                Logout
-              </button>
-            </div>
-          </div>
+          
         </div>
 
         {isLoading ? (

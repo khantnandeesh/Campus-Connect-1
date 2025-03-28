@@ -7,12 +7,14 @@ import "react-toastify/dist/ReactToastify.css";
 import { Provider } from "react-redux";
 import store from "./redux/store.js";
 import { Toaster } from "react-hot-toast";
+import { RecoilRoot } from "recoil";
 createRoot(document.getElementById("root")).render(
-  <StrictMode>
+<RecoilRoot>
     <Provider store={store}>
       <Toaster position="top-right" />
       <ToastContainer />
       <App />
     </Provider>
-  </StrictMode>
+  </RecoilRoot>
+
 );

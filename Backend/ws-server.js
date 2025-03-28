@@ -4,13 +4,29 @@ import Chat from "./models/chat.model.js";
 const wss = new WebSocketServer({ port: 3001 });
 const clients = new Map();
 
+
+
+let userToSocket=new Map();
+let socketToUser=new Map();
+let receiverSocket=null;
+let newReceiverSocket=null;
+let currentStatus={}
+
+
+
+
+
+
+
+
+
 wss.on("connection", (ws) => {
   let userId = null;
 
   ws.on("message", async (message) => {
     try {
       const data = JSON.parse(message);
-      console.log("Received WebSocket message:", data);
+
 
       switch (data.type) {
         case "join":
@@ -143,6 +159,204 @@ wss.on("connection", (ws) => {
           // Handle heartbeat to maintain connection
           ws.send(JSON.stringify({ type: "heartbeat", status: "ok" }));
           break;
+
+
+
+        case "start":
+        
+           {
+            console.log("start received!");
+            
+             const {roomId,userId}=data.data;
+           
+            let insertIndex;
+            socketToUser.set(ws,userId);
+            userToSocket.set(userId,ws);
+            if(currentStatus[roomId]==undefined){
+              currentStatus[roomId]=[];
+              insertIndex=0;
+              currentStatus[roomId].push(userId);
+            }
+            else{
+                insertIndex=currentStatus[roomId].length;
+                currentStatus[roomId].push(userId);
+            } 
+   
+            let string =JSON.stringify({
+              type:"add-peer",
+              data:{
+                roomId:roomId,
+                index:insertIndex,
+              }
+            })
+            
+            receiverSocket.send(string)
+           console.log(userToSocket.get(userId))
+            break;
+          }
+        
+        case "add-peerA":
+         { 
+          
+            let {index,roomId}=data.data;
+            
+            let socket=userToSocket.get(currentStatus[roomId][index]) 
+            socket.send(JSON.stringify({
+              type:"start" })
+            )  
+
+            break;
+        } 
+
+
+        case "offer":
+
+          {
+        
+            let {roomId,offer,userId}=data.data;
+            let index=currentStatus[roomId].indexOf(userId);
+            receiverSocket.send(JSON.stringify({
+              type:"offer",
+              data:{
+                roomId,
+                index,
+                offer
+              }
+            })
+            )
+
+
+            break;
+          }
+
+
+        case "answer":
+          {
+
+            let {roomId,index,answer}=data.data;
+            let socket=userToSocket.get(currentStatus[roomId][index]);
+            socket.send(JSON.stringify({
+              type:"answerI",
+              data:{
+                answer
+              }
+            })
+            )
+
+
+            break;
+          }
+
+        case "receiver":
+          {
+            console.log("receiver received!");
+            receiverSocket=ws;
+            break;
+          }
+
+        case "ice-candidate":
+          {
+            let {roomId,userId,candidate}=data.data;
+            let index=currentStatus[roomId].indexOf(userId);
+            receiverSocket.send(JSON.stringify({
+              type:"ice-candidate-main",
+              data:{
+                roomId,
+                index,
+                candidate
+              }
+            })
+            )
+            break;
+          }
+        case "tickle" :
+          {
+            let {candidate,roomId,index}=data.data;
+            let socket=userToSocket.get(currentStatus[roomId][index]);
+            socket.send(JSON.stringify({
+              type:"tickleR",
+              data:{
+                candidate
+              }
+            }))
+            break;
+          }
+
+        case "offerI":
+          {
+            console.log("offerI received!");
+            let {roomId,index,offer}=data.data;
+            if(newReceiverSocket==null){
+              newReceiverSocket=ws;
+            }
+            let socket=userToSocket.get(currentStatus[roomId][index]);
+            socket.send(JSON.stringify({
+              type:"offerI",
+              data:{
+                offer
+              }
+            })
+            
+            )
+            console.log("offerI sent!");
+
+            break;
+          }
+
+
+          case "answer-secondary":
+            {
+              let {roomId,userId,answer}=data.data;
+              let index=currentStatus[roomId].indexOf(userId);
+              newReceiverSocket.send(JSON.stringify({
+                type:"answer-secondary",
+                data:{
+                  roomId,
+                  index,
+                  answer
+                }
+              })
+              )
+              break;
+              
+            }
+
+          case "ice-candidate-medi":
+            {
+              let {roomId,index,candidate}=data.data;
+              let socket=userToSocket.get(currentStatus[roomId][index]);
+              socket.send(JSON.stringify({
+                type:"ice-candidate-medi",
+                data:{
+                  
+                  candidate
+                }
+              })
+              )
+
+              break;
+            }
+
+          case 'ice-candidate-forward':
+            {
+              let {roomId,userId,candidate}=data.data;
+              let index=currentStatus[roomId].indexOf(userId);
+              newReceiverSocket.send(JSON.stringify({
+                type:"ice-candidate-forward",
+                data:{
+                  roomId,
+                  index,
+                  candidate
+                }
+              })
+              )
+              break;
+              
+            }
+
+
+
+            
       }
     } catch (error) {
       console.error("WebSocket Error:", error);
@@ -153,6 +367,14 @@ wss.on("connection", (ws) => {
         })
       );
     }
+
+
+
+
+    //for group video call from now on 
+
+
+
   });
 
   ws.on("close", () => {
@@ -188,6 +410,12 @@ function broadcastUserStatus(userId, isOnline) {
       client.send(message);
     }
   });
+
+
+
+
+
+
 }
 
 console.log("WebSocket server running on port 3001");

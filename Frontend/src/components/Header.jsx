@@ -92,6 +92,8 @@ const Header = () => {
   const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
   const profileMenuRef = useRef(null);
 
+  
+
   //notification using socket
   useEffect(() => {
     if (!socket || !user) return;
@@ -182,8 +184,12 @@ const Header = () => {
 
   const handleLogout = async () => {
     try {
-      await apiClient.post("/auth/logout", {}, { withCredentials: true });
-      navigateTo("/login");
+      await axios.post(
+        "http://localhost:3000/auth/api/auth/logout",
+        {},
+        { withCredentials: true }
+      );
+      window.location.href="/login";
     } catch (err) {
       console.error("Logout failed", err);
     }
@@ -306,6 +312,14 @@ const Header = () => {
       >
         Logout
       </div>
+      <div
+        className="p-2 hover:bg-gray-400 cursor-pointer"
+        onClick={()=>{
+          window.location.href='/admin/login'
+        }}
+      >
+        Admin Login
+      </div>
     </div>
   );
 
@@ -325,6 +339,12 @@ const Header = () => {
         <span className="ml-2">Notifications</span>
       </div>
       <div className="p-2 flex items-center" onClick={handleProfileMenuOpen}>
+        <AccountCircle />
+        <span className="ml-2">Profile</span>
+      </div>
+      <div className="p-2 flex items-center" onClick={()=>{
+        window.location.href='/admin/login'
+      }}>
         <AccountCircle />
         <span className="ml-2">Profile</span>
       </div>
@@ -529,6 +549,12 @@ const Header = () => {
                   Mentors
                 </Link>
               </li>
+              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
+                <Link to="/mentor-application" className="nav-link font-semibold">
+                  Mentor Application
+                </Link>
+              </li>
+              
               <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
                 <Link to="/marketplace" className="nav-link font-semibold">
                   Market
