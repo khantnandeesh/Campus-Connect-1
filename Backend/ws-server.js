@@ -1,7 +1,7 @@
 import { WebSocketServer, WebSocket } from "ws";
 import Chat from "./models/chat.model.js";
 
-const wss = new WebSocketServer({ port: 10000 });
+const wss = new WebSocketServer({ port:process.env.PORT });
 const clients = new Map();
 
 
