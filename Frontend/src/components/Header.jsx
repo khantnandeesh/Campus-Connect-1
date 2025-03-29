@@ -27,6 +27,7 @@ const apiClient = axios.create({
 });
 
 function useAuthStatus() {
+  const [isMentorDropdownOpen, setIsMentorDropdownOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [user, setUser] = useState(null);
@@ -84,6 +85,7 @@ const Header = () => {
   });
   const [notificationDropdownOpen, setNotificationDropdownOpen] =
     useState(false);
+  const [isMentorDropdownOpen, setIsMentorDropdownOpen] = useState(false); // Add this line
 
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState("");
@@ -91,8 +93,6 @@ const Header = () => {
   const isMenuOpen = Boolean(anchorEl);
   const isMobileMenuOpen = Boolean(mobileMoreAnchorEl);
   const profileMenuRef = useRef(null);
-
-  
 
   //notification using socket
   useEffect(() => {
@@ -189,7 +189,7 @@ const Header = () => {
         {},
         { withCredentials: true }
       );
-      window.location.href="/login";
+      window.location.href = "/login";
     } catch (err) {
       console.error("Logout failed", err);
     }
@@ -314,8 +314,8 @@ const Header = () => {
       </div>
       <div
         className="p-2 hover:bg-gray-400 cursor-pointer"
-        onClick={()=>{
-          window.location.href='/admin/login'
+        onClick={() => {
+          window.location.href = "/admin/login";
         }}
       >
         Admin Login
@@ -342,9 +342,12 @@ const Header = () => {
         <AccountCircle />
         <span className="ml-2">Profile</span>
       </div>
-      <div className="p-2 flex items-center" onClick={()=>{
-        window.location.href='/admin/login'
-      }}>
+      <div
+        className="p-2 flex items-center"
+        onClick={() => {
+          window.location.href = "/admin/login";
+        }}
+      >
         <AccountCircle />
         <span className="ml-2">Profile</span>
       </div>
@@ -544,17 +547,96 @@ const Header = () => {
                   Chats
                 </Link>
               </li>
-              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
-                <Link to="/mentors" className="nav-link font-semibold">
-                  Mentors
-                </Link>
+              {/* Mentors Dropdown */}
+
+              <li
+                style={{
+                  position: "relative",
+                  padding: "8px 16px",
+                  borderRadius: "8px",
+                  transition: "background-color 0.3s",
+                  cursor: "pointer",
+                }}
+                onMouseEnter={() => setIsMentorDropdownOpen(true)}
+                onMouseLeave={() => setIsMentorDropdownOpen(false)}
+              >
+                <span
+                  style={{
+                    textDecoration: "none",
+                    color: "white",
+                    fontWeight: "600",
+                  }}
+                >
+                  {" "}
+                  Mentors{" "}
+                </span>
+                {isMentorDropdownOpen && (
+                  <ul
+                    style={{
+                      position: "absolute",
+                      top: "100%",
+                      left: "0",
+                      backgroundColor: "#374151",
+                      borderRadius: "8px",
+                      listStyle: "none",
+                      padding: "8px 0",
+                      margin: "0",
+                      boxShadow: "0 4px 6px rgba(0, 0, 0, 0.1)",
+                    }}
+                  >
+                    <li
+                      style={{
+                        padding: "8px 16px",
+                        transition: "background-color 0.3s",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.target.style.backgroundColor = "#4b5563")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.target.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <Link
+                        to="/mentors"
+                        style={{
+                          textDecoration: "none",
+                          color: "white",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {" "}
+                        Mentors{" "}
+                      </Link>
+                    </li>
+                    <li
+                      style={{
+                        padding: "8px 16px",
+                        transition: "background-color 0.3s",
+                        cursor: "pointer",
+                      }}
+                      onMouseEnter={(e) =>
+                        (e.target.style.backgroundColor = "#4b5563")
+                      }
+                      onMouseLeave={(e) =>
+                        (e.target.style.backgroundColor = "transparent")
+                      }
+                    >
+                      <Link
+                        to="/mentor-application"
+                        style={{
+                          textDecoration: "none",
+                          color: "white",
+                          fontWeight: "500",
+                        }}
+                      >
+                        Mentor Application{" "}
+                      </Link>
+                    </li>{" "}
+                  </ul>
+                )}
               </li>
-              <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
-                <Link to="/mentor-application" className="nav-link font-semibold">
-                  Mentor Application
-                </Link>
-              </li>
-              
+
               <li className="hover:bg-[#088395] hover:rounded-xl p-2 transition-all">
                 <Link to="/marketplace" className="nav-link font-semibold">
                   Market
