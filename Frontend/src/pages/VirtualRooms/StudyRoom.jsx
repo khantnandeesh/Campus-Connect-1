@@ -6,8 +6,8 @@ import { Toaster, toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
 import Sender from "./Sender";
 
-const socket = io("http://localhost:3000");
-axios.defaults.baseURL = "http://localhost:3000";
+const socket = io("https://campus-connect-1-7rgs.onrender.com");
+axios.defaults.baseURL = "https://campus-connect-1-7rgs.onrender.com";
 axios.defaults.withCredentials = true;
 
 const StudyRoom = () => {
@@ -16,7 +16,7 @@ const StudyRoom = () => {
   const user = useSelector((state) => state.auth.user);
   const currentUserId = user?._id;
   const messagesEndRef = useRef(null);
-  
+
   const [messages, setMessages] = useState([]);
   const [message, setMessage] = useState("");
   const [tasks, setTasks] = useState([]);
@@ -193,8 +193,8 @@ const StudyRoom = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#121212] via-[#1e1e1e] to-[#000] text-gray-100 antialiased">
-      <Toaster 
-        position="top-right" 
+      <Toaster
+        position="top-right"
         containerClassName="z-50"
         toastOptions={{
           className: 'bg-gray-800 text-gray-200 border border-gray-700 shadow-2xl',
@@ -308,11 +308,10 @@ const StudyRoom = () => {
                   return (
                     <div
                       key={msg._id || msg.timestamp}
-                      className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${
-                        isMyMessage 
-                          ? "bg-blue-600 ml-auto text-right" 
+                      className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${isMyMessage
+                          ? "bg-blue-600 ml-auto text-right"
                           : "bg-gray-700 mr-auto text-left"
-                      }`}
+                        }`}
                     >
                       <p className="text-xs font-medium text-white">
                         {msg.sender?.username}
@@ -343,9 +342,8 @@ const StudyRoom = () => {
                 {tasks.map((t) => (
                   <div
                     key={t._id}
-                    className={`p-3 rounded-lg flex justify-between items-center ${
-                      t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
-                    }`}
+                    className={`p-3 rounded-lg flex justify-between items-center ${t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
+                      }`}
                   >
                     <div className="flex items-center gap-2">
                       <input
@@ -364,7 +362,7 @@ const StudyRoom = () => {
                   </div>
                 ))}
               </div>
-              <input  
+              <input
                 type="text"
                 className="w-full bg-gray-800 border border-gray-600 p-3 rounded mt-4 focus:outline-none focus:border-blue-400"
                 placeholder="Add a new task..."

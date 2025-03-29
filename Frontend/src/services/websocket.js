@@ -7,7 +7,7 @@ class WebSocketService {
   }
 
   connect(token) {
-    this.ws = new WebSocket("ws://localhost:3001");
+    this.ws = new WebSocket("wss://campus-connect-2-wvnt.onrender.com");
 
     this.ws.onopen = () => {
       console.log("WebSocket Connected");
@@ -15,7 +15,7 @@ class WebSocketService {
       this.ws.send(
         JSON.stringify({
           type: "auth",
-          token
+          token,
         })
       );
     };
@@ -32,7 +32,7 @@ class WebSocketService {
           if (this.setOnlineStatus) {
             this.setOnlineStatus({
               users: data.users,
-              mentors: data.mentors
+              mentors: data.mentors,
             });
           }
           break;

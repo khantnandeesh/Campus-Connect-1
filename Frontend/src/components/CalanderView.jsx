@@ -21,7 +21,7 @@ const MeetingCalendar = ({ user }) => {
       try {
         setIsLoading(true);
         const response = await axios.get(
-          "http://localhost:3000/api/meetings/all",
+          "https://campus-connect-1-7rgs.onrender.com/api/meetings/all",
           {
             withCredentials: true,
           }
@@ -76,7 +76,7 @@ const MeetingCalendar = ({ user }) => {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "http://localhost:3000/auth/api/auth/logout",
+        "https://campus-connect-1-7rgs.onrender.com/auth/api/auth/logout",
         {},
         { withCredentials: true }
       );
@@ -213,7 +213,7 @@ const MeetingCalendar = ({ user }) => {
           >
             Meeting Dashboard
           </h1>
-          
+
         </div>
 
         {isLoading ? (

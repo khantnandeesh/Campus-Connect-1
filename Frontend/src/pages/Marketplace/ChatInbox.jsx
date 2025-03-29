@@ -15,7 +15,7 @@ const ChatInbox = () => {
     const fetchChats = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/chatMarket/inbox?userId=${userId}`,
+          `https://campus-connect-1-7rgs.onrender.com/api/chatMarket/inbox?userId=${userId}`,
           { withCredentials: true }
         );
         setChats(response.data);
@@ -40,7 +40,7 @@ const ChatInbox = () => {
   return (
     <div className="p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 drop-shadow-lg text-center mb-8">
         Chat Inbox
       </h2>
@@ -48,8 +48,8 @@ const ChatInbox = () => {
       {chats.length === 0 ? (
         <div className="flex flex-col justify-center items-center text-gray-400 space-y-4">
           <p className="text-xl">No conversations yet.</p>
-          <Link 
-            to="/marketplace" 
+          <Link
+            to="/marketplace"
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg hover:shadow-blue-500/50"
           >
             Browse Marketplace

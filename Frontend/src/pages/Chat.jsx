@@ -195,7 +195,7 @@ const Chat = () => {
         fetchData();
 
         // Connect to WebSocket
-        const ws = new WebSocket('ws://localhost:3001');
+        const ws = new WebSocket('wss://campus-connect-2-wvnt.onrender.com');
         wsRef.current = ws;
 
         ws.onopen = () => {
@@ -254,13 +254,13 @@ const Chat = () => {
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span class="break-words">${new Date(data.date + ' ' + data.time).toLocaleString([], {
-                weekday: 'long',
-                year: 'numeric',
-                month: 'long',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            })}</span>
+                            weekday: 'long',
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        })}</span>
         </div>
         
         <div class="flex flex-col  items-center gap-2 sm:gap-4 mt-4 pt-4 border-t border-blue-900">

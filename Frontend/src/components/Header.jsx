@@ -16,10 +16,10 @@ import axios from "axios";
 import SearchResultItem from "./SearchResultItem"; // Import the new component
 import { toast } from "react-hot-toast";
 import { searchPublicGroups } from "../utils/groupService";
-const socket = io("http://localhost:3000", { withCredentials: true });
+const socket = io("https://campus-connect-1-7rgs.onrender.com", { withCredentials: true });
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:3000/",
+  baseURL: "https://campus-connect-1-7rgs.onrender.com/",
   headers: {
     "Content-Type": "application/json",
   },
@@ -185,7 +185,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "http://localhost:3000/auth/api/auth/logout",
+        "https://campus-connect-1-7rgs.onrender.com/auth/api/auth/logout",
         {},
         { withCredentials: true }
       );
@@ -248,9 +248,8 @@ const Header = () => {
 
   const renderNotificationsDropdown = () => (
     <div
-      className={`absolute right-0 mt-2 w-80 bg-white text-black shadow-lg rounded-md z-20 ${
-        notificationDropdownOpen ? "block" : "hidden"
-      }`}
+      className={`absolute right-0 mt-2 w-80 bg-white text-black shadow-lg rounded-md z-20 ${notificationDropdownOpen ? "block" : "hidden"
+        }`}
     >
       <div className="p-4">
         <h3 className="font-bold mb-3">Friend Requests</h3>
@@ -288,9 +287,8 @@ const Header = () => {
   const renderMenu = (
     <div
       ref={profileMenuRef}
-      className={`absolute right-0 mt-2 w-48 bg-gray-800 shadow-lg rounded-md z-10 ${
-        isMenuOpen ? "block" : "hidden"
-      }`}
+      className={`absolute right-0 mt-2 w-48 bg-gray-800 shadow-lg rounded-md z-10 ${isMenuOpen ? "block" : "hidden"
+        }`}
     >
       <div
         className="p-2 hover:bg-gray-400 cursor-pointer block text-white"
@@ -326,9 +324,8 @@ const Header = () => {
   const mobileMenuId = "primary-search-account-menu-mobile";
   const renderMobileMenu = (
     <div
-      className={`absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-10 ${
-        isMobileMenuOpen ? "block" : "hidden"
-      }`}
+      className={`absolute right-0 mt-2 w-48 bg-white shadow-lg rounded-md z-10 ${isMobileMenuOpen ? "block" : "hidden"
+        }`}
     >
       <div className="p-2 flex items-center">
         <MailIcon />
@@ -362,11 +359,10 @@ const Header = () => {
 
   const renderSearchBar = () => (
     <div
-      className={`transition-all ${
-        searchOpen
+      className={`transition-all ${searchOpen
           ? "fixed top-4 left-1/2 transform -translate-x-1/2 w-2/3 max-w-lg z-50"
           : "w-40"
-      }`}
+        }`}
     >
       <div className="flex flex-col bg-white text-black rounded-lg shadow-lg">
         <div className="flex items-center px-4 py-2">

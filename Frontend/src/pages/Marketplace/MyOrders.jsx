@@ -14,7 +14,7 @@ const MyOrders = () => {
     if (!userId) return;
     const fetchOrders = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/marketplace/orders", { withCredentials: true });
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/api/marketplace/orders", { withCredentials: true });
         setOrders(response.data);
       } catch (error) {
         console.error("Error fetching orders:", error);
@@ -51,7 +51,7 @@ const MyOrders = () => {
   return (
     <div className="p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <div className="flex justify-between items-center mb-8">
         <h1 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 drop-shadow-lg">
           My Orders
@@ -66,14 +66,14 @@ const MyOrders = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {orders.map((order) => (
-          <div 
-            key={order._id} 
+          <div
+            key={order._id}
             className="bg-gray-800 p-4 rounded-lg shadow-xl border border-gray-700 relative hover:scale-105 transition-all duration-300 hover:shadow-2xl"
           >
-            <img 
-              src={order.images[0]} 
-              alt={order.title} 
-              className="w-full h-48 object-cover rounded-lg border-2 border-transparent hover:border-blue-500 transition-all duration-300" 
+            <img
+              src={order.images[0]}
+              alt={order.title}
+              className="w-full h-48 object-cover rounded-lg border-2 border-transparent hover:border-blue-500 transition-all duration-300"
             />
             <h2 className="mt-4 text-xl font-medium text-transparent bg-clip-text bg-gradient-to-r from-white to-gray-400">
               {order.title}

@@ -8,7 +8,7 @@ import { userState } from '../atoms/userAtoms';
 import { onlineStatusState } from '../atoms/onlineStatusAtom';
 import { useRef } from 'react';
 const MentorCard = ({ mentor, isDarkMode }) => {
-   
+
     const navigate = useNavigate();
     const user = useRecoilValue(userState);
     const onlineStatus = useRecoilValue(onlineStatusState);
@@ -16,62 +16,62 @@ const MentorCard = ({ mentor, isDarkMode }) => {
     const [ws, setWs] = useState(null);
     const [isOnline, setIsOnline] = useState(false);
     let [id, setId] = useState(null);
-    let interval=useRef(null);
+    let interval = useRef(null);
     useEffect(() => {
-        let id=null;
-        let wsCopy=null;
-        axios.get("http://localhost:3000/auth/dashboard", {
+        let id = null;
+        let wsCopy = null;
+        axios.get("https://campus-connect-1-7rgs.onrender.com/auth/dashboard", {
             withCredentials: true,
         }).then((response) => {
-            id=response.data.user.id;
+            id = response.data.user.id;
             setId(id);
 
-            const ws = new WebSocket("ws://localhost:3001");
-            wsCopy=ws;
+            const ws = new WebSocket("wss://campus-connect-2-wvnt.onrender.com");
+            wsCopy = ws;
             setWs(ws);
             ws.onopen = () => {
-            console.log(
-                "hit me"
-            );
-            
-            ws.send(JSON.stringify({ type: "online", content: { _id: response.data.user.id } }));
+                console.log(
+                    "hit me"
+                );
+
+                ws.send(JSON.stringify({ type: "online", content: { _id: response.data.user.id } }));
             }
             ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                const {type, content} = data;
+                const { type, content } = data;
                 console.log(data);
-                if(data=="ping"){
+                if (data == "ping") {
                     ws.send("pong");
                 }
 
-                if(type=="get-statusR"){
-        
-                    if(content._id==mentor._id){
+                if (type == "get-statusR") {
+
+                    if (content._id == mentor._id) {
                         setIsOnline(content.online);
                     }
                 }
             }
 
 
-            
-            });
 
-            
-            return () => {
-                if ( wsCopy && wsCopy.readyState === WebSocket.OPEN) {
-                    wsCopy.send(JSON.stringify({ type: "offline", content: { _id: id } }));
-                    wsCopy.close();
-                    
-                }
-            };
-           
+        });
 
-        
+
+        return () => {
+            if (wsCopy && wsCopy.readyState === WebSocket.OPEN) {
+                wsCopy.send(JSON.stringify({ type: "offline", content: { _id: id } }));
+                wsCopy.close();
+
+            }
+        };
+
+
+
 
     }, []);
 
     const handleChatClick = () => {
-        if(id!=null){
+        if (id != null) {
             navigate(`/chat/${id}/${mentor._id}`);
         }
     };
@@ -93,24 +93,24 @@ const MentorCard = ({ mentor, isDarkMode }) => {
         }
     };
 
-    if(ws && ws.readyState === WebSocket.OPEN){
-        if(interval.current){
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        if (interval.current) {
             clearInterval(interval.current);
         }
-        interval.current=setInterval(() => {
-            if(ws && ws.readyState === WebSocket.OPEN){
+        interval.current = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
 
-                ws.send(JSON.stringify({ type: "get-status", content: { _id: mentor._id} }));
+                ws.send(JSON.stringify({ type: "get-status", content: { _id: mentor._id } }));
             }
 
-    }, 1000);
+        }, 1000);
         ws.onmessage = (event) => {
-            const {type, content} = JSON.parse(event.data);
+            const { type, content } = JSON.parse(event.data);
 
 
-            if(type=="get-statusR"){
-        
-                if(content._id==mentor._id){
+            if (type == "get-statusR") {
+
+                if (content._id == mentor._id) {
                     setIsOnline(content.online);
                 }
             }

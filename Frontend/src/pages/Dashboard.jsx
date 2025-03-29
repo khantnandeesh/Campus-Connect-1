@@ -10,10 +10,10 @@ const Dashboard = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    
+
     const fetchDashboard = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/auth/dashboard", {
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/auth/dashboard", {
           withCredentials: true,
         });
         console.log(response.data);
@@ -44,7 +44,7 @@ const Dashboard = () => {
   return (
 
     <CalanderView user={user} />
-   
+
   );
 };
 

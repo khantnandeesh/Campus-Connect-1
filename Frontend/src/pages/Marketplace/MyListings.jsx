@@ -12,7 +12,7 @@ const MyListings = () => {
   useEffect(() => {
     const fetchListings = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/api/marketplace/my-listings", {
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/api/marketplace/my-listings", {
           withCredentials: true,
         });
         setListings(response.data);
@@ -33,7 +33,7 @@ const MyListings = () => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
 
     try {
-      await axios.delete(`http://localhost:3000/api/marketplace/products/${id}`, {
+      await axios.delete(`https://campus-connect-1-7rgs.onrender.com/api/marketplace/products/${id}`, {
         withCredentials: true,
       });
       setListings((prev) => prev.filter((product) => product._id !== id));
@@ -47,7 +47,7 @@ const MyListings = () => {
   const markAsSold = async (id) => {
     try {
       await axios.put(
-        `http://localhost:3000/api/marketplace/products/${id}/mark-sold`,
+        `https://campus-connect-1-7rgs.onrender.com/api/marketplace/products/${id}/mark-sold`,
         {},
         { withCredentials: true }
       );
@@ -74,7 +74,7 @@ const MyListings = () => {
   return (
     <div className="p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen flex flex-col items-center">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 drop-shadow-lg mb-6">
         My Listings
       </h2>
@@ -82,8 +82,8 @@ const MyListings = () => {
       {listings.length === 0 ? (
         <div className="flex flex-col justify-center items-center text-gray-400 space-y-4">
           <p className="text-xl">You haven't listed any products yet.</p>
-          <Link 
-            to="/marketplace/add" 
+          <Link
+            to="/marketplace/add"
             className="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-all duration-300 hover:shadow-lg"
           >
             Add New Product
@@ -115,8 +115,8 @@ const MyListings = () => {
                 </p>
               </div>
               <div className="flex space-x-2">
-                <Link 
-                  to={`/marketplace/edit/${product._id}`} 
+                <Link
+                  to={`/marketplace/edit/${product._id}`}
                   className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 rounded-lg transition-all duration-300 hover:shadow-lg"
                 >
                   Edit ✏️

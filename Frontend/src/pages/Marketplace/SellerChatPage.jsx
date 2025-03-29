@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 import { Toaster, toast } from "react-hot-toast";
 
-const SERVER_URL = "http://localhost:3000";
+const SERVER_URL = "https://campus-connect-1-7rgs.onrender.com";
 
 const SellerChatPage = () => {
   const { sellerId } = useParams();
@@ -118,7 +118,7 @@ const SellerChatPage = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-black flex items-center justify-center p-4">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <div className="w-full max-w-2xl bg-gray-800 rounded-lg shadow-2xl shadow-blue-500/20 flex flex-col h-[80vh] border border-gray-700">
         <div className="flex justify-between items-center p-4 border-b border-gray-700 bg-gray-900">
           <h2 className="text-2xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600">
@@ -139,18 +139,16 @@ const SellerChatPage = () => {
             messages.map((msg, index) => (
               <div
                 key={index}
-                className={`flex ${
-                  msg.senderId.toString() === userId.toString()
+                className={`flex ${msg.senderId.toString() === userId.toString()
                     ? "justify-end"
                     : "justify-start"
-                }`}
+                  }`}
               >
                 <div
-                  className={`p-3 rounded-xl max-w-[75%] shadow-md text-white ${
-                    msg.senderId.toString() === userId.toString()
+                  className={`p-3 rounded-xl max-w-[75%] shadow-md text-white ${msg.senderId.toString() === userId.toString()
                       ? "bg-blue-600 hover:bg-blue-700"
                       : "bg-gray-700 hover:bg-gray-600"
-                  } transition-all duration-300`}
+                    } transition-all duration-300`}
                 >
                   {msg.text}
                 </div>

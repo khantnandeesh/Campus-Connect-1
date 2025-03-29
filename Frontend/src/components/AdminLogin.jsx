@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:3000';
+axios.defaults.baseURL = 'https://campus-connect-1-7rgs.onrender.com';
 axios.defaults.withCredentials = true;
 
 const AdminLogin = () => {

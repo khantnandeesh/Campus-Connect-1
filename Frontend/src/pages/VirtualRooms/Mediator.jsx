@@ -12,7 +12,7 @@ const Mediator = () => {
     const videoRefs = useRef([]);
 
     useEffect(() => {
-        let ws = new WebSocket("ws://localhost:3001");
+        let ws = new WebSocket("wss://campus-connect-2-wvnt.onrender.com");
         setSocket(ws);
 
         ws.onopen = () => {
@@ -222,8 +222,8 @@ const Mediator = () => {
     return (
         <>
             <Button onClick={StartStream}>Start Stream</Button>
-            <Button onClick={async() => {
-                
+            <Button onClick={async () => {
+
 
                 for (const [key, value] of Object.entries(obja)) {
                     let peerArray = value;
@@ -243,7 +243,7 @@ const Mediator = () => {
                                 peerSEND.addTrack(mediaStream.getTracks()[1], mediaStream)
                             }
                         }
-                        let ws = new WebSocket("ws://localhost:3001");
+                        let ws = new WebSocket("wss://campus-connect-2-wvnt.onrender.com");
 
 
                         peerSEND.createOffer().then((offer) => {
@@ -297,10 +297,10 @@ const Mediator = () => {
 
                             }
                         }
-                        console.log(i +"waiting !")
-                       
+                        console.log(i + "waiting !")
+
                         await new Promise(resolve => setTimeout(resolve, 15500));
-                        ws=null
+                        ws = null
                     }
                 }
             }}>EMIT STREAM AND AUTO</Button>

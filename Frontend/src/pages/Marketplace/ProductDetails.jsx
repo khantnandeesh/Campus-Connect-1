@@ -1,18 +1,18 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom"; 
+import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { Toaster, toast } from "react-hot-toast";
 import { MessageCircle, Heart, ShoppingCart } from "lucide-react";
 
-const SERVER_URL = "http://localhost:3000";
+const SERVER_URL = "https://campus-connect-1-7rgs.onrender.com";
 
 const ProductDetails = () => {
   const { id } = useParams();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
   const user = useSelector((state) => state.auth.user);
   const userId = user?._id;
-  
+
   const [product, setProduct] = useState(null);
   const [loading, setLoading] = useState(true);
   const [currentImage, setCurrentImage] = useState(0);
@@ -122,7 +122,7 @@ const ProductDetails = () => {
         { withCredentials: true }
       );
       const { orderId, amount, currency, key } = response.data;
-      
+
       const options = {
         key, // Razorpay Test Key ID
         amount, // Amount in paise
@@ -134,7 +134,7 @@ const ProductDetails = () => {
           try {
             await axios.post(
               `${SERVER_URL}/api/marketplace/verify-payment`,
-              { 
+              {
                 razorpay_order_id: razorpayResponse.razorpay_order_id,
                 razorpay_payment_id: razorpayResponse.razorpay_payment_id,
                 razorpay_signature: razorpayResponse.razorpay_signature,
@@ -172,17 +172,17 @@ const ProductDetails = () => {
     tertiary: "bg-purple-600 hover:bg-purple-700 text-white hover:shadow-lg hover:shadow-purple-500/50"
   };
 
-  const buttonClasses = (variant = "primary") => 
+  const buttonClasses = (variant = "primary") =>
     `px-4 py-3 rounded-lg w-full flex justify-center items-center space-x-2 transition-all duration-300 ${buttonVariants[variant]} disabled:opacity-50 disabled:cursor-not-allowed`;
 
-  if (loading) 
+  if (loading)
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 to-black">
         <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-indigo-500"></div>
       </div>
     );
-  
-  if (!product) 
+
+  if (!product)
     return (
       <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-gray-900 to-black text-white">
         <p className="text-red-500 text-xl">Product not found</p>
@@ -192,7 +192,7 @@ const ProductDetails = () => {
   return (
     <div className="p-4 sm:p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white flex items-center justify-center">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <div className="w-full max-w-5xl mx-auto">
         <div className="flex flex-col lg:flex-row gap-6 justify-center">
           {/* Left Column: Product Details */}
@@ -233,9 +233,8 @@ const ProductDetails = () => {
                         <button
                           key={index}
                           onClick={() => setCurrentImage(index)}
-                          className={`w-2 h-2 rounded-full ${
-                            currentImage === index ? "bg-white" : "bg-gray-500"
-                          }`}
+                          className={`w-2 h-2 rounded-full ${currentImage === index ? "bg-white" : "bg-gray-500"
+                            }`}
                         />
                       ))}
                     </div>
@@ -262,15 +261,15 @@ const ProductDetails = () => {
                 </div>
               )}
             </div>
-            
+
             <p className="text-gray-300 mb-4">{product.description}</p>
             <div className="border-t border-gray-700 pt-4 mb-4">
               <p className="text-gray-300 flex items-center">
-                <span className="text-gray-500 mr-2">Seller:</span> 
+                <span className="text-gray-500 mr-2">Seller:</span>
                 {product.sellerId?.username || "Unknown"}
               </p>
             </div>
-            
+
             {userId === product.sellerId?._id ? (
               <div className="bg-yellow-500 bg-opacity-20 border border-yellow-600 rounded-lg p-3 text-center">
                 <p className="text-yellow-400">You are the seller of this product</p>
@@ -327,12 +326,12 @@ const ProductDetails = () => {
                 </span>
               )}
             </h3>
-            
+
             {reviews.length > 0 ? (
               <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
                 {reviews.map((review) => (
-                  <div 
-                    key={review._id} 
+                  <div
+                    key={review._id}
                     className="bg-gray-700 p-4 rounded-lg transition-all duration-300 hover:scale-105 hover:shadow-lg hover:shadow-indigo-500/30"
                   >
                     <div className="flex justify-between items-start">
@@ -400,11 +399,10 @@ const ProductDetails = () => {
                   <button
                     onClick={handleAddReview}
                     disabled={!reviewText.trim()}
-                    className={`flex-1 py-2 rounded-lg transition-all duration-300 ${
-                      !reviewText.trim()
+                    className={`flex-1 py-2 rounded-lg transition-all duration-300 ${!reviewText.trim()
                         ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                         : buttonClasses("primary")
-                    }`}
+                      }`}
                   >
                     Submit Review
                   </button>

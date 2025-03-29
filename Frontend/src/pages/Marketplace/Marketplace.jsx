@@ -3,13 +3,13 @@ import axios from "axios";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { Toaster } from "react-hot-toast";
-import { 
-  MessageCircle, 
-  Heart, 
-  Plus, 
-  Package, 
-  ShoppingCart, 
-  Loader2, 
+import {
+  MessageCircle,
+  Heart,
+  Plus,
+  Package,
+  ShoppingCart,
+  Loader2,
   Send
 } from "lucide-react";
 
@@ -29,7 +29,7 @@ const Marketplace = () => {
     const fetchProducts = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:3000/api/marketplace/products"
+          "https://campus-connect-1-7rgs.onrender.com/api/marketplace/products"
         );
         setProducts(response.data);
         const uniqueCategories = [
@@ -52,7 +52,7 @@ const Marketplace = () => {
     const fetchUnreadCount = async () => {
       try {
         const response = await axios.get(
-          `http://localhost:3000/api/chatMarket/inbox?userId=${userId}`,
+          `https://campus-connect-1-7rgs.onrender.com/api/chatMarket/inbox?userId=${userId}`,
           { withCredentials: true }
         );
         const totalUnread = response.data.reduce(
@@ -84,7 +84,7 @@ const Marketplace = () => {
   return (
     <div className="p-6 bg-gradient-to-br from-gray-900 to-black min-h-screen text-white">
       <Toaster position="top-right" reverseOrder={false} />
-      
+
       <div className="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
         <h2 className="text-4xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-purple-600 drop-shadow-lg">
           Marketplace

@@ -30,7 +30,7 @@ const MentorApplicationForm = () => {
 
     const checkApplicationStatus = async () => {
         try {
-            const response = await axios.get('http://localhost:3000/api/mentor/status', {
+            const response = await axios.get('https://campus-connect-1-7rgs.onrender.com/api/mentor/status', {
                 withCredentials: true
             });
             setApplicationStatus(response.data);
@@ -89,14 +89,14 @@ const MentorApplicationForm = () => {
         try {
             if (isEditing) {
                 // If editing, use the update endpoint
-                const response = await axios.put('http://localhost:3000/api/mentor/update-application', formData, {
+                const response = await axios.put('https://campus-connect-1-7rgs.onrender.com/api/mentor/update-application', formData, {
                     withCredentials: true
                 });
                 console.log('Update response:', response.data);
                 setMessage('Application updated successfully!');
             } else {
                 // If new submission, use the apply endpoint
-                const response = await axios.post('http://localhost:3000/api/mentor/apply', formData, {
+                const response = await axios.post('https://campus-connect-1-7rgs.onrender.com/api/mentor/apply', formData, {
                     withCredentials: true
                 });
                 console.log('Submit response:', response.data);

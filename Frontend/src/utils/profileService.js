@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-  baseURL: "http://localhost:3000/api",
+  baseURL: "https://campus-connect-1-7rgs.onrender.com/api",
   headers: {
     "Content-Type": "application/json",
   },

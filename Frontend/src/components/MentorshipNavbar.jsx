@@ -12,7 +12,7 @@ const MentorshipNavbar = ({ isDarkMode }) => {
     useEffect(() => {
         const fetchUser = async () => {
             try {
-                const response = await axios.get("http://localhost:3000/auth/dashboard", {
+                const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/auth/dashboard", {
                     withCredentials: true,
                 });
                 setUserId(response.data.user._id);

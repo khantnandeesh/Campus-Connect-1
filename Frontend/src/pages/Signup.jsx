@@ -19,7 +19,7 @@ const Signup = () => {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await axios.get("http://localhost:3000/auth/dashboard", {
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/auth/dashboard", {
           withCredentials: true,
         });
         if (response.status === 200) {
@@ -41,7 +41,7 @@ const Signup = () => {
 
     const fetchColleges = async () => {
       try {
-        const response = await axios.get("http://localhost:3000/college/colleges");
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/college/colleges");
         setColleges(response.data.colleges);
       } catch (error) {
         console.error("Error fetching colleges", error);
@@ -66,7 +66,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:3000/auth/signup", {
+      const response = await axios.post("https://campus-connect-1-7rgs.onrender.com/auth/signup", {
         username,
         password,
         email,
@@ -97,7 +97,7 @@ const Signup = () => {
 
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:3000/auth/verify-signup", {
+      const response = await axios.post("https://campus-connect-1-7rgs.onrender.com/auth/verify-signup", {
         username,
         password,
         email,
@@ -120,7 +120,7 @@ const Signup = () => {
   const handleResendOtp = async () => {
     try {
       setLoading(true);
-      const response = await axios.post("http://localhost:3000/auth/signup", {
+      const response = await axios.post("https://campus-connect-1-7rgs.onrender.com/auth/signup", {
         username,
         password,
         email,
@@ -252,8 +252,8 @@ const Signup = () => {
         <div className="mt-6 text-center">
           <p className="text-gray-400">
             Already have an account?{' '}
-            <Link 
-              to="/login" 
+            <Link
+              to="/login"
               className="text-blue-400 hover:text-blue-300 hover:underline"
             >
               Login here

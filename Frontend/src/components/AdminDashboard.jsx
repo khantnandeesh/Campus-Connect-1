@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import MentorshipNavbar from './MentorshipNavbar';
 
 // Configure axios defaults
-axios.defaults.baseURL = 'http://localhost:3000';
+axios.defaults.baseURL = 'https://campus-connect-1-7rgs.onrender.com';
 axios.defaults.withCredentials = true;
 
 const AdminDashboard = () => {

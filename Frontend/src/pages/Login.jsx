@@ -21,7 +21,7 @@ const Login = () => {
   useEffect(() => {
     async function checkAuth() {
       try {
-        const response = await axios.get("http://localhost:3000/auth/dashboard", {
+        const response = await axios.get("https://campus-connect-1-7rgs.onrender.com/auth/dashboard", {
           withCredentials: true,
         });
         if (response.status === 200) {
@@ -48,7 +48,7 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://localhost:3000/auth/login',
+        'https://campus-connect-1-7rgs.onrender.com/auth/login',
         { username, password },
         { withCredentials: true }
       );
@@ -68,7 +68,7 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://localhost:3000/auth/verify-login',
+        'https://campus-connect-1-7rgs.onrender.com/auth/verify-login',
         { username, otp },
         { withCredentials: true }
       );
@@ -88,7 +88,7 @@ const Login = () => {
     setLoading(true);
     try {
       const response = await axios.post(
-        'http://localhost:3000/auth/resend-otp',
+        'https://campus-connect-1-7rgs.onrender.com/auth/resend-otp',
         { username },
         { withCredentials: true }
       );
@@ -171,12 +171,12 @@ const Login = () => {
         {error && (
           <p className="text-red-400 text-sm mt-4 text-center">{error}</p>
         )}
-        
+
         <div className="mt-6 text-center">
           <p className="text-gray-400">
             Don't have an account?{' '}
-            <Link 
-              to="/signup" 
+            <Link
+              to="/signup"
               className="text-blue-400 hover:text-blue-300 hover:underline"
             >
               Create an Account
