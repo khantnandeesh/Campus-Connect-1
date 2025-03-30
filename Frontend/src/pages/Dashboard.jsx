@@ -21,7 +21,7 @@ const Dashboard = () => {
         setLoading(false);
       } catch (err) {
         setLoading(false);
-        if (err.response?.status === 401 || err.response?.status === 403) {
+        if (err.response?.status === 404 ) {
           setError("Unauthorized: Please log in");
           navigate("/login");
         } else {

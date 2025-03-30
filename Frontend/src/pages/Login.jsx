@@ -72,7 +72,7 @@ const Login = () => {
         { username, otp },
         { withCredentials: true }
       );
-      if (response.status === 200) {
+      if (response.data.message == "Welcome to the dashboard") {
         dispatch(loginSuccess(response.data));
         navigate('/dashboard');
       }
