@@ -35,9 +35,9 @@ const server = http.createServer(app);
 // Configure Socket.IO with CORS
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: "https://campus-connect-1tr3.onrender.com/",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
-    credentials: true, // Add this line
+    credentials: true,
   },
 });
 
@@ -47,6 +47,7 @@ const io = new Server(server, {
 // Add timer management
 const activeTimers = new Map(); // Track active timers per room
 const users = new Map(); // Track online users
+const whiteboardState = {}; // Store whiteboard lines for each room
 
 // Middleware
 app.use(cookieParser());
@@ -55,7 +56,7 @@ app.use(express.json());
 // Configure CORS
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: "https://campus-connect-1tr3.onrender.com/",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -91,6 +92,8 @@ io.on("connection", (socket) => {
       io.emit("online-users", Array.from(users.keys()));
     }
   });
+
+
 
   // Study Room Events
   const handleStudyRoomEvents = () => {
@@ -129,6 +132,21 @@ io.on("connection", (socket) => {
         console.error("Duration update error:", err);
       }
     });
+
+    // Listen for whiteboardLine events and update whiteboard state
+  socket.on("whiteboardLine", ({ roomId, line, sender }) => {
+    if (!whiteboardState[roomId]) whiteboardState[roomId] = [];
+    whiteboardState[roomId].push(line);
+    io.in(roomId).emit("whiteboardLine", { roomId, line, sender });
+  });
+
+  // When a client requests whiteboard data
+  socket.on("requestWhiteboardData", ({ roomId }) => {
+    if (whiteboardState[roomId]) {
+      socket.emit("whiteboardData", { roomId, lines: whiteboardState[roomId] });
+    }
+  });
+
 
     // startTimer handler
     socket.on("startTimer", async (roomId) => {

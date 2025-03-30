@@ -147,28 +147,16 @@ router.post("/login", async (req, res) => {
       return res.status(400).json({ message: "Invalid password" });
     }
 
-    const otp = "111111"; //only for testing till development remind me to remove this after development
-    const emailSent = await sendEmailWithRetries({
-      to: user.email,
-      subject: "Login OTP Verification",
-      text: `Your OTP is: ${otp}`
-    });
-    console.log("email sent with otp " + otp + "to email " + user.email);
+    
     const token = jwt.sign(
       { id: user._id, username: user.username, email: user.email },
       process.env.JWT_SECRET,
       { expiresIn: "5d" }
     );
-    if (!emailSent) {
-      return res
-        .status(500)
-        .json({ message: "Failed to send OTP. Please try again." });
-    }
-
-    otpStore[user.email] = otp;
+    
     res.cookie("authToken", token, {
       httpOnly: true,
-      sameSite: "strict",
+      sameSite: "none",
       maxAge: 5 * 24 * 60 * 600 * 1000,
     });
     res.status(200).json({ message: "DONE " });

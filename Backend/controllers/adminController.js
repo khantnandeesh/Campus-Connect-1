@@ -58,8 +58,8 @@ export const adminLogin = async (req, res) => {
     // Set cookie with appropriate settings for local development
     res.cookie("adminAuthToken", token, {
       httpOnly: true,
-      secure: false, // Set to false for local development
-      sameSite: "lax", // Changed to lax for local development
+      secure: true, // Set to false for local development
+      sameSite: "none", // Changed to lax for local development
       maxAge: 24 * 60 * 60 * 1000 // 1 day
     });
 
@@ -88,8 +88,8 @@ export const adminSignout = async (req, res) => {
     res.cookie("adminAuthToken", "", {
       httpOnly: true,
       expires: new Date(0),
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict"
+      secure: true,
+      sameSite: "none"
     });
 
     res.status(200).json({ message: "Admin signed out successfully" });

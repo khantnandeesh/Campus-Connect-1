@@ -1,14 +1,25 @@
+// src/pages/VirtualRooms/StudyRoom.jsx
 import React, { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { io } from "socket.io-client";
 import axios from "axios";
 import { Toaster, toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
-import Sender from "./Sender";
+import WhiteboardKonva from "./WhiteboardKonva";
+import { io } from "socket.io-client";
 
-const socket = io("https://campus-connect-1-7rgs.onrender.com");
-axios.defaults.baseURL = "https://campus-connect-1-7rgs.onrender.com";
+const socket = io("https://campus-connect-1tr3.onrender.com/", {
+  withCredentials: true,
+  transports: ["websocket", "polling"],
+});
+axios.defaults.baseURL = "https://campus-connect-1tr3.onrender.com/";
 axios.defaults.withCredentials = true;
+
+socket.on("connect", () => {
+  console.log("Socket connected:", socket.id);
+});
+socket.on("connect_error", (err) => {
+  console.error("Socket connection error:", err);
+});
 
 const StudyRoom = () => {
   const { roomId } = useParams();
@@ -27,13 +38,14 @@ const StudyRoom = () => {
   const [duration, setDuration] = useState(25);
   const [mode, setMode] = useState("work");
   const [showCopied, setShowCopied] = useState(false);
+  // State for switching between Chat and Whiteboard views
+  const [activeTab, setActiveTab] = useState("chat");
 
-  // Timer circle visualization
   const radius = 80;
   const circumference = 2 * Math.PI * radius;
   const progress = ((timer / (duration * 60)) * circumference).toFixed(2);
 
-  // Scroll to bottom when new messages arrive
+  // Auto-scroll chat when messages update
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -60,25 +72,17 @@ const StudyRoom = () => {
       } catch (err) {
         console.error("Error fetching room data:", err);
         toast.error("Failed to fetch room data");
+        navigate("/room", { replace: true });
       }
     };
 
-    const fetchTimerState = async () => {
-      try {
-        const res = await axios.get(`/api/rooms/${roomId}`);
-        setTimer(res.data.timer.timeLeft);
-        setIsRunning(res.data.timer.isRunning);
-        setMode(res.data.timer.mode);
-      } catch (err) {
-        console.error("Error fetching timer state:", err);
-      }
-    };
-
-    fetchTimerState();
+    console.log("Emitting joinRoom event for room:", roomId);
     socket.emit("joinRoom", roomId);
     fetchRoomData();
 
+    // Socket event listeners
     socket.on("newMessage", (msg) => {
+      console.log("Received new message:", msg);
       setMessages((prev) => [...prev, msg]);
     });
     socket.on("taskAdded", (newTask) => setTasks((prev) => [...prev, newTask]));
@@ -101,6 +105,7 @@ const StudyRoom = () => {
     });
 
     return () => {
+      console.log("Leaving room:", roomId);
       socket.emit("leaveRoom", roomId);
       socket.off("newMessage");
       socket.off("taskAdded");
@@ -108,8 +113,9 @@ const StudyRoom = () => {
       socket.off("taskUpdated");
       socket.off("timerUpdated");
       socket.off("participantsUpdated");
+      socket.off("whiteboardLine");
     };
-  }, [roomId]);
+  }, [roomId, navigate]);
 
   const handleDurationChange = (minutes) => {
     if (!isRunning && minutes > 0 && minutes <= 120) {
@@ -197,19 +203,23 @@ const StudyRoom = () => {
         position="top-right"
         containerClassName="z-50"
         toastOptions={{
-          className: 'bg-gray-800 text-gray-200 border border-gray-700 shadow-2xl',
-          success: { className: 'bg-green-900 text-green-100' },
-          error: { className: 'bg-red-900 text-red-100' }
+          className: "bg-gray-800 text-gray-200 border border-gray-700 shadow-2xl",
+          success: { className: "bg-green-900 text-green-100" },
+          error: { className: "bg-red-900 text-red-100" },
         }}
       />
       <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Left Column - Timer & Participants */}
+        {/* Left Column - Timer, Participants & Room Actions */}
+        <div className="grid md:grid-cols-3 gap-8 items-stretch">
           <div className="md:col-span-1 space-y-6">
             <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl relative overflow-hidden">
               <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
               <div className="relative z-10">
-                <h2 className={`text-3xl font-bold text-center mb-4 ${mode === 'work' ? 'text-blue-300 glow-blue' : 'text-green-300 glow-green'}`}>
+                <h2
+                  className={`text-3xl font-bold text-center mb-4 ${
+                    mode === "work" ? "text-blue-300 glow-blue" : "text-green-300 glow-green"
+                  }`}
+                >
                   {mode === "work" ? "Focus Time" : "Break Time"}
                 </h2>
                 <div className="relative w-48 h-48 mx-auto">
@@ -226,7 +236,9 @@ const StudyRoom = () => {
                       cx="50%"
                       cy="50%"
                       r="80"
-                      className={`stroke-current stroke-[10] ${mode === "work" ? "text-blue-500 animate-pulse" : "text-green-500 animate-pulse"}`}
+                      className={`stroke-current stroke-[10] ${
+                        mode === "work" ? "text-blue-500 animate-pulse" : "text-green-500 animate-pulse"
+                      }`}
                       fill="transparent"
                       strokeDasharray={`${progress} ${circumference}`}
                     />
@@ -242,7 +254,11 @@ const StudyRoom = () => {
                     <button
                       key={min}
                       onClick={() => handleDurationChange(min)}
-                      className={`px-4 py-2 rounded-full transition-all duration-300 ${duration === min ? "bg-blue-600 text-white scale-105 glow-blue" : "bg-gray-700 text-gray-300 hover:bg-gray-600"} ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                      className={`px-4 py-2 rounded-full transition-all duration-300 ${
+                        duration === min
+                          ? "bg-blue-600 text-white scale-105 glow-blue"
+                          : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                      } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                       disabled={isRunning}
                     >
                       {min}m
@@ -251,7 +267,9 @@ const StudyRoom = () => {
                 </div>
                 <div className="mt-6 flex justify-center space-x-4">
                   <button
-                    className={`px-6 py-3 rounded-full font-bold uppercase tracking-wide transition-all duration-300 ${isRunning ? "bg-red-600 hover:bg-red-500 glow-red" : "bg-green-600 hover:bg-green-500 glow-green"}`}
+                    className={`px-6 py-3 rounded-full font-bold uppercase tracking-wide transition-all duration-300 ${
+                      isRunning ? "bg-red-600 hover:bg-red-500 glow-red" : "bg-green-600 hover:bg-green-500 glow-green"
+                    }`}
                     onClick={toggleTimer}
                   >
                     {isRunning ? "Stop" : "Start"}
@@ -269,10 +287,7 @@ const StudyRoom = () => {
               <div className="flex justify-between items-center mb-3">
                 <h2 className="text-xl font-semibold">Participants</h2>
                 <div className="relative">
-                  <button
-                    onClick={copyRoomId}
-                    className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500 text-sm"
-                  >
+                  <button onClick={copyRoomId} className="px-3 py-1 bg-gray-600 rounded hover:bg-gray-500 text-sm">
                     Copy Room ID
                   </button>
                   {showCopied && (
@@ -295,86 +310,126 @@ const StudyRoom = () => {
                 <p className="text-gray-400 text-center mt-2">No participants yet</p>
               )}
             </div>
-            <button onClick={leaveRoom} className="mt-6 text-red-400 hover:text-red-300">
-              Leave Room
-            </button>
+            <div className="flex gap-10 justify-center items-center">
+              <button onClick={leaveRoom} className="text-red-400 hover:text-red-300 font-bold">
+                Leave Room
+              </button>
+            </div>
           </div>
-          <div className="md:col-span-2 space-y-6">
-            <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
-              <h2 className="text-2xl font-semibold mb-4">Chat</h2>
-              <div className="border border-gray-600 rounded-md p-4 h-64 overflow-y-auto">
-                {messages.map((msg) => {
-                  const isMyMessage = msg.sender?._id === currentUserId;
-                  return (
-                    <div
-                      key={msg._id || msg.timestamp}
-                      className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${isMyMessage
-                          ? "bg-blue-600 ml-auto text-right"
-                          : "bg-gray-700 mr-auto text-left"
-                        }`}
-                    >
-                      <p className="text-xs font-medium text-white">
-                        {msg.sender?.username}
-                      </p>
-                      <p className="text-sm text-white break-words">{msg.message}</p>
-                    </div>
-                  );
-                })}
-                <div ref={messagesEndRef} />
-              </div>
-              <div className="mt-4 flex">
-                <input
-                  type="text"
-                  className="w-full bg-gray-800 border border-gray-600 p-3 rounded-l-md focus:outline-none focus:border-blue-400"
-                  placeholder="Type a message..."
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                />
-                <button className="bg-blue-600 text-white px-4 rounded-r-md hover:bg-blue-500" onClick={sendMessage}>
-                  Send
+
+          {/* Right Column - Chat / Whiteboard Container */}
+          <div className="md:col-span-2 flex flex-col">
+            <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl h-full flex flex-col">
+              {/* Header with Tab Buttons */}
+              <div className="flex justify-center gap-4">
+                <button
+                  onClick={() => setActiveTab("chat")}
+                  className={`px-4 py-2 rounded-lg font-bold ${
+                    activeTab === "chat" ? "bg-blue-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setActiveTab("whiteboard")}
+                  className={`px-4 py-2 rounded-lg font-bold ${
+                    activeTab === "whiteboard" ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                  }`}
+                >
+                  Whiteboard
                 </button>
               </div>
-            </div>
-            <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
-              <h2 className="text-2xl font-semibold mb-4">Tasks</h2>
-              <div className="grid grid-cols-1 gap-3">
-                {tasks.map((t) => (
-                  <div
-                    key={t._id}
-                    className={`p-3 rounded-lg flex justify-between items-center ${t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
-                      }`}
-                  >
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={t.completed}
-                        onChange={() => toggleTask(t._id, t.completed)}
-                        className="w-4 h-4 text-blue-400 bg-gray-800 rounded focus:ring-blue-500"
-                      />
-                      <span className={`${t.completed ? "text-gray-400 line-through" : "text-gray-200"}`}>
-                        {t.title}
-                      </span>
-                    </div>
-                    <button className="text-red-400 hover:text-red-300" onClick={() => deleteTask(t._id)}>
-                      ❌
-                    </button>
+
+              {/* Content area with equalized height */}
+              <div className="flex-1 overflow-y-auto mt-4">
+                {activeTab === "whiteboard" ? (
+                  <div className="h-full">
+                    <WhiteboardKonva roomId={roomId} socket={socket} />
                   </div>
-                ))}
+                ) : (
+                  <div className="flex flex-col h-full">
+                    <div className="border border-gray-600 rounded-md p-4 flex-1 overflow-y-auto">
+                      {messages.map((msg) => {
+                        const isMyMessage = msg.sender?._id === currentUserId;
+                        return (
+                          <div
+                            key={msg._id || msg.timestamp}
+                            className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${
+                              isMyMessage ? "bg-blue-600 ml-auto text-right" : "bg-gray-700 mr-auto text-left"
+                            }`}
+                          >
+                            <p className="text-xs font-medium text-white">{msg.sender?.username}</p>
+                            <p className="text-sm text-white break-words">{msg.message}</p>
+                          </div>
+                        );
+                      })}
+                      <div ref={messagesEndRef} />
+                    </div>
+                    <div className="mt-4 flex">
+                      <input
+                        type="text"
+                        className="w-full bg-gray-800 border border-gray-600 p-3 rounded-l-md focus:outline-none focus:border-blue-400"
+                        placeholder="Type a message..."
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                      />
+                      <button
+                        className="bg-blue-600 text-white px-4 rounded-r-md hover:bg-blue-500"
+                        onClick={sendMessage}
+                      >
+                        Send
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
-              <input
-                type="text"
-                className="w-full bg-gray-800 border border-gray-600 p-3 rounded mt-4 focus:outline-none focus:border-blue-400"
-                placeholder="Add a new task..."
-                value={task}
-                onChange={(e) => setTask(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && addTask()}
-              />
             </div>
+
+            {/* Conditionally render Tasks segment only when Chat is selected */}
+            {activeTab === "chat" && (
+              <div className="mt-4">
+                <div className="bg-gray-800/60 backdrop-blur-xl border border-gray-700/50 rounded-2xl p-6 shadow-2xl">
+                  <h2 className="text-2xl font-semibold mb-4">Tasks</h2>
+                  <div className="grid grid-cols-1 gap-3">
+                    {tasks.map((t) => (
+                      <div
+                        key={t._id}
+                        className={`p-3 rounded-lg flex justify-between items-center ${
+                          t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="checkbox"
+                            checked={t.completed}
+                            onChange={() => toggleTask(t._id, t.completed)}
+                            className="w-4 h-4 text-blue-400 bg-gray-800 rounded focus:ring-blue-500"
+                          />
+                          <span className={`${t.completed ? "text-gray-400 line-through" : "text-gray-200"}`}>
+                            {t.title}
+                          </span>
+                        </div>
+                        <button className="text-red-400 hover:text-red-300" onClick={() => deleteTask(t._id)}>
+                          ❌
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    className="w-full bg-gray-800 border border-gray-600 p-3 rounded mt-4 focus:outline-none focus:border-blue-400"
+                    placeholder="Add a new task..."
+                    value={task}
+                    onChange={(e) => setTask(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && addTask()}
+                  />
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
-      {/* <Sender userId={currentUserId} roomId={roomId} /> */}
     </div>
   );
 };
