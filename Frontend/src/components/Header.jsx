@@ -186,7 +186,7 @@ const Header = () => {
   const handleLogout = async () => {
     try {
       await axios.post(
-        "https://campus-connect-1-7rgs.onrender.com//auth/api/auth/logout",
+        "https://campus-connect-1-7rgs.onrender.com/auth/api/auth/logout",
         {},
         { withCredentials: true }
       );
@@ -360,8 +360,8 @@ const Header = () => {
   const renderSearchBar = () => (
     <div
       className={`transition-all duration-300 ${searchOpen
-          ? "fixed top-4 left-1/2 transform -translate-x-1/2 w-2/3 max-w-lg z-50"
-          : "w-40"
+        ? "fixed top-4 left-1/2 transform -translate-x-1/2 w-2/3 max-w-lg z-50"
+        : "w-40"
         }`}
     >
       <div className="flex flex-col bg-gray-900 text-gray-200 rounded-lg shadow-xl border border-gray-800 backdrop-blur-lg">
