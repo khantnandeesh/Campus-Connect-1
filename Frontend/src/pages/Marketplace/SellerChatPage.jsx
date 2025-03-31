@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 import { Toaster, toast } from "react-hot-toast";
 
-const SERVER_URL = "https://campus-connect-1tr3.onrender.com/";
+const SERVER_URL = "https://campus-connect-1-7rgs.onrender.com/";
 
 const SellerChatPage = () => {
   const { sellerId } = useParams();
@@ -140,14 +140,14 @@ const SellerChatPage = () => {
               <div
                 key={index}
                 className={`flex ${msg.senderId.toString() === userId.toString()
-                    ? "justify-end"
-                    : "justify-start"
+                  ? "justify-end"
+                  : "justify-start"
                   }`}
               >
                 <div
                   className={`p-3 rounded-xl max-w-[75%] shadow-md text-white ${msg.senderId.toString() === userId.toString()
-                      ? "bg-blue-600 hover:bg-blue-700"
-                      : "bg-gray-700 hover:bg-gray-600"
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-gray-700 hover:bg-gray-600"
                     } transition-all duration-300`}
                 >
                   {msg.text}

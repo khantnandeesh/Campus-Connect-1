@@ -7,11 +7,11 @@ import { useSelector } from "react-redux";
 import WhiteboardKonva from "./WhiteboardKonva";
 import { io } from "socket.io-client";
 
-const socket = io("https://campus-connect-1tr3.onrender.com/", {
+const socket = io("https://campus-connect-1-7rgs.onrender.com/", {
   withCredentials: true,
   transports: ["websocket", "polling"],
 });
-axios.defaults.baseURL = "https://campus-connect-1tr3.onrender.com/";
+axios.defaults.baseURL = "https://campus-connect-1-7rgs.onrender.com/";
 axios.defaults.withCredentials = true;
 
 socket.on("connect", () => {
@@ -216,9 +216,8 @@ const StudyRoom = () => {
               <div className="absolute -top-1/2 -left-1/2 w-full h-full bg-blue-500/10 rounded-full blur-3xl animate-pulse"></div>
               <div className="relative z-10">
                 <h2
-                  className={`text-3xl font-bold text-center mb-4 ${
-                    mode === "work" ? "text-blue-300 glow-blue" : "text-green-300 glow-green"
-                  }`}
+                  className={`text-3xl font-bold text-center mb-4 ${mode === "work" ? "text-blue-300 glow-blue" : "text-green-300 glow-green"
+                    }`}
                 >
                   {mode === "work" ? "Focus Time" : "Break Time"}
                 </h2>
@@ -236,9 +235,8 @@ const StudyRoom = () => {
                       cx="50%"
                       cy="50%"
                       r="80"
-                      className={`stroke-current stroke-[10] ${
-                        mode === "work" ? "text-blue-500 animate-pulse" : "text-green-500 animate-pulse"
-                      }`}
+                      className={`stroke-current stroke-[10] ${mode === "work" ? "text-blue-500 animate-pulse" : "text-green-500 animate-pulse"
+                        }`}
                       fill="transparent"
                       strokeDasharray={`${progress} ${circumference}`}
                     />
@@ -254,11 +252,10 @@ const StudyRoom = () => {
                     <button
                       key={min}
                       onClick={() => handleDurationChange(min)}
-                      className={`px-4 py-2 rounded-full transition-all duration-300 ${
-                        duration === min
+                      className={`px-4 py-2 rounded-full transition-all duration-300 ${duration === min
                           ? "bg-blue-600 text-white scale-105 glow-blue"
                           : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                      } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
+                        } ${isRunning ? "opacity-50 cursor-not-allowed" : ""}`}
                       disabled={isRunning}
                     >
                       {min}m
@@ -267,9 +264,8 @@ const StudyRoom = () => {
                 </div>
                 <div className="mt-6 flex justify-center space-x-4">
                   <button
-                    className={`px-6 py-3 rounded-full font-bold uppercase tracking-wide transition-all duration-300 ${
-                      isRunning ? "bg-red-600 hover:bg-red-500 glow-red" : "bg-green-600 hover:bg-green-500 glow-green"
-                    }`}
+                    className={`px-6 py-3 rounded-full font-bold uppercase tracking-wide transition-all duration-300 ${isRunning ? "bg-red-600 hover:bg-red-500 glow-red" : "bg-green-600 hover:bg-green-500 glow-green"
+                      }`}
                     onClick={toggleTimer}
                   >
                     {isRunning ? "Stop" : "Start"}
@@ -324,17 +320,15 @@ const StudyRoom = () => {
               <div className="flex justify-center gap-4">
                 <button
                   onClick={() => setActiveTab("chat")}
-                  className={`px-4 py-2 rounded-lg font-bold ${
-                    activeTab === "chat" ? "bg-blue-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-bold ${activeTab === "chat" ? "bg-blue-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
                 >
                   Chat
                 </button>
                 <button
                   onClick={() => setActiveTab("whiteboard")}
-                  className={`px-4 py-2 rounded-lg font-bold ${
-                    activeTab === "whiteboard" ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                  }`}
+                  className={`px-4 py-2 rounded-lg font-bold ${activeTab === "whiteboard" ? "bg-indigo-600 text-white shadow-lg" : "bg-gray-700 text-gray-300 hover:bg-gray-600"
+                    }`}
                 >
                   Whiteboard
                 </button>
@@ -354,9 +348,8 @@ const StudyRoom = () => {
                         return (
                           <div
                             key={msg._id || msg.timestamp}
-                            className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${
-                              isMyMessage ? "bg-blue-600 ml-auto text-right" : "bg-gray-700 mr-auto text-left"
-                            }`}
+                            className={`mb-3 p-2 rounded-lg w-fit max-w-[90%] ${isMyMessage ? "bg-blue-600 ml-auto text-right" : "bg-gray-700 mr-auto text-left"
+                              }`}
                           >
                             <p className="text-xs font-medium text-white">{msg.sender?.username}</p>
                             <p className="text-sm text-white break-words">{msg.message}</p>
@@ -395,9 +388,8 @@ const StudyRoom = () => {
                     {tasks.map((t) => (
                       <div
                         key={t._id}
-                        className={`p-3 rounded-lg flex justify-between items-center ${
-                          t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
-                        }`}
+                        className={`p-3 rounded-lg flex justify-between items-center ${t.completed ? "bg-gray-700" : "bg-gray-700 border border-gray-600"
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <input

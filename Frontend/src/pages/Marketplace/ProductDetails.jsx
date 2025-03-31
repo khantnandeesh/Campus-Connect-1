@@ -5,7 +5,7 @@ import { useSelector } from "react-redux";
 import { Toaster, toast } from "react-hot-toast";
 import { MessageCircle, Heart, ShoppingCart } from "lucide-react";
 
-const SERVER_URL = "https://campus-connect-1tr3.onrender.com/";
+const SERVER_URL = "https://campus-connect-1-7rgs.onrender.com/";
 
 const ProductDetails = () => {
   const { id } = useParams();
@@ -400,8 +400,8 @@ const ProductDetails = () => {
                     onClick={handleAddReview}
                     disabled={!reviewText.trim()}
                     className={`flex-1 py-2 rounded-lg transition-all duration-300 ${!reviewText.trim()
-                        ? "bg-gray-700 text-gray-400 cursor-not-allowed"
-                        : buttonClasses("primary")
+                      ? "bg-gray-700 text-gray-400 cursor-not-allowed"
+                      : buttonClasses("primary")
                       }`}
                   >
                     Submit Review
