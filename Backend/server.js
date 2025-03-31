@@ -35,7 +35,7 @@ const server = http.createServer(app);
 // Configure Socket.IO with CORS
 const io = new Server(server, {
   cors: {
-    origin: "https://campus-connect-1tr3.onrender.com/",
+    origin: "https://campus-connect-1-7rgs.onrender.com/",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
   },
@@ -56,7 +56,7 @@ app.use(express.json());
 // Configure CORS
 app.use(
   cors({
-    origin: "https://campus-connect-1tr3.onrender.com/",
+    origin: "https://campus-connect-1-7rgs.onrender.com/",
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
     credentials: true,
     allowedHeaders: ["Content-Type", "Authorization"],
@@ -92,8 +92,6 @@ io.on("connection", (socket) => {
       io.emit("online-users", Array.from(users.keys()));
     }
   });
-
-
 
   // Study Room Events
   const handleStudyRoomEvents = () => {
@@ -134,19 +132,21 @@ io.on("connection", (socket) => {
     });
 
     // Listen for whiteboardLine events and update whiteboard state
-  socket.on("whiteboardLine", ({ roomId, line, sender }) => {
-    if (!whiteboardState[roomId]) whiteboardState[roomId] = [];
-    whiteboardState[roomId].push(line);
-    io.in(roomId).emit("whiteboardLine", { roomId, line, sender });
-  });
+    socket.on("whiteboardLine", ({ roomId, line, sender }) => {
+      if (!whiteboardState[roomId]) whiteboardState[roomId] = [];
+      whiteboardState[roomId].push(line);
+      io.in(roomId).emit("whiteboardLine", { roomId, line, sender });
+    });
 
-  // When a client requests whiteboard data
-  socket.on("requestWhiteboardData", ({ roomId }) => {
-    if (whiteboardState[roomId]) {
-      socket.emit("whiteboardData", { roomId, lines: whiteboardState[roomId] });
-    }
-  });
-
+    // When a client requests whiteboard data
+    socket.on("requestWhiteboardData", ({ roomId }) => {
+      if (whiteboardState[roomId]) {
+        socket.emit("whiteboardData", {
+          roomId,
+          lines: whiteboardState[roomId],
+        });
+      }
+    });
 
     // startTimer handler
     socket.on("startTimer", async (roomId) => {
