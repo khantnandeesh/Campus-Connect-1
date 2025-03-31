@@ -216,7 +216,7 @@ router.post("/verify-login", async (req, res) => {
 const authenticateUser = (req, res, next) => {
   const token = req.cookies.authToken;
   if (!token) {
-    return res.status(404).json({ message: "Unauthorized" });
+    return res.status(401).json({ message: "Unauthorized" });
   }
 
   try {
