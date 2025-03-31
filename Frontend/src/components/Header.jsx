@@ -19,7 +19,7 @@ import { searchPublicGroups } from "../utils/groupService";
 const socket = io("https://campus-connect-1-7rgs.onrender.com/", { withCredentials: true });
 
 const apiClient = axios.create({
-  baseURL: "https://campus-connect-1-7rgs.onrender.com//",
+  baseURL: "https://campus-connect-1-7rgs.onrender.com/",
   headers: {
     "Content-Type": "application/json",
   },
